@@ -1,0 +1,151 @@
+Context-Free Grammar (CFG) 	
+------------------------------------------------------------------------------		
+------------------------------------------------------------------------------	
+Variable Declaration
+------------------------------------------------------------------------------			
+<variable_dec> -> <keyword> <datatype> <identifier> <data> ;
+
+<keyword> -> let | var
+<datatype> -> <type> | E
+<data> -> E | = <dataFull>
+<dataFull> -> <constant> | <func_call> | <expression> | <identifier>
+<type> -> int | str | ...... | bool			
+------------------------------------------------------------------------------			
+Inc Dec	
+------------------------------------------------------------------------------		
+<inc_dec> -> <identifier> <inc_dec_op> ;
+
+<inc_dec_op> -> ++ | --	
+------------------------------------------------------------------------------			
+Variable Assignment	
+------------------------------------------------------------------------------		
+<variable_ass> -> <identifier> <op> <data> | <inc_dec>;
+
+<data> -> <constant> | <func_call> | <expression> | <identifier>
+<op> -> = | += | ...... | -=		
+------------------------------------------------------------------------------
+If Elif Else
+------------------------------------------------------------------------------
+<if> -> if (<condition>) <block> <else_if>
+<else_if> -> <elseif_keywords> (<condition>) <block> <else_if> | else <block> | E
+<block> -> {<body>}
+<elseif_keywords> -> else if | elseif | elif
+
+<condition> -> <data> <comparison_operator> <data> <logical>| <term> <logical>
+<logical> -> E | <logical_operator> <condition>
+<data> -> <term> | <expression>
+<term> -> <identifier> | <constant>
+<comparison_operator> -> == | != | ... | < | > | <= | >=
+<logical_operator> -> && | ||
+------------------------------------------------------------------------------
+For Loop
+------------------------------------------------------------------------------
+<for_loop> -> for ( <variable_dec>; <condition>; <variable_ass> ) <block>
+
+<block> -> {<body>}
+------------------------------------------------------------------------------
+While Loop
+------------------------------------------------------------------------------
+<while_loop> -> while (<condition>) <block>
+
+<block> -> {<body>}
+------------------------------------------------------------------------------
+Break
+------------------------------------------------------------------------------
+<loop_body> -> {...<break>...}
+
+<break> -> return true; | E
+------------------------------------------------------------------------------
+Continue
+------------------------------------------------------------------------------
+<loop_body> -> {...<continue>...}
+
+<continue> -> return false; | E
+------------------------------------------------------------------------------
+Function Call
+------------------------------------------------------------------------------
+<func_call> -> <identifier> ( <params> );
+
+<params> -> E | <data> <more_args>
+<more_args> E | , <params>
+<data> -> <term> | <expression>
+<term> -> <identifier> | <constant>
+------------------------------------------------------------------------------
+Function Declaration
+------------------------------------------------------------------------------
+<func_dec> -> <datatype> func <identifier> ( <params> ) <block>
+
+<params> -> E | <data> <more_args>
+<more_args> E | , <params>
+<data> -> <variable_ass> | <identifier> | <constant>
+<datatype> -> <type> | E
+<type> -> int | str | ...... | bool		
+<block> -> {<body>}
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+Context-Free Grammar (CFG) 	- OOP
+------------------------------------------------------------------------------		
+------------------------------------------------------------------------------	
+Class Declaration
+------------------------------------------------------------------------------			
+<class> -> class <identifier> <extend> <block> | abstract class <identifier> <block>
+
+<extend> -> E | : <identifier>
+<block> -> {<body>}
+------------------------------------------------------------------------------	
+Constructor
+------------------------------------------------------------------------------			
+<constructor> -> init(<params>) <block>
+
+<params> -> E | <data> <more_args>
+<more_args> E | , <params>
+<data> -> <variable_ass> | <identifier> | <constant>
+<block> -> {<body>}
+------------------------------------------------------------------------------	
+Destructor
+------------------------------------------------------------------------------			
+<destructor> -> deinit(<params>) <block>
+
+<params> -> E | <data> <more_args>
+<more_args> E | , <params>
+<data> -> <variable_ass> | <identifier> | <constant>
+<block> -> {<body>}
+------------------------------------------------------------------------------
+Function Declaration
+------------------------------------------------------------------------------
+<oop_func_dec> -> <other_var> <access_modeifiers> <datatype> func <identifier> ( <params> ) <block>
+
+<access_modeifiers> -> public | protected | private | E
+<other_var> -> static | override | abstract | E
+<params> -> E | <data> <more_args>
+<more_args> E | , <params>
+<data> -> <variable_ass> | <identifier> | <constant>
+<datatype> -> <type> | E
+<type> -> int | str | ...... | bool		
+<block> -> {<body>}
+------------------------------------------------------------------------------
+Object or Function Call or Variable Call
+------------------------------------------------------------------------------
+<oop_func_var_call> -> <object>.<identifier> ( <params> ) | <object>.<identifier>;
+
+<object> -> super | <objName_identifier>() | this
+<params> -> E | <data> <more_args>
+<more_args> E | , <params>
+<data> -> <term> | <expression>
+<term> -> <identifier> | <constant>
+------------------------------------------------------------------------------	
+Variable Declaration
+------------------------------------------------------------------------------			
+<variable_dec_oop> -> <other_var> <access_modeifiers> <keyword> <datatype> <identifier> <data> ;
+
+<access_modeifiers> -> public | protected | private | E
+<other_var> -> static | override | abstract | E
+<keyword> -> let | var
+<datatype> -> <type> | E
+<data> -> E | = <dataFull>
+<dataFull> -> <constant> | <func_call> | <expression> | <identifier>
+<type> -> int | str | ...... | bool		
+------------------------------------------------------------------------------	
