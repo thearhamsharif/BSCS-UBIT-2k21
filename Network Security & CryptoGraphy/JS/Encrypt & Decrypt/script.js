@@ -2,7 +2,7 @@ const simpleInc = 3;
 const simpleCharArr = Array.from({ length: 26 }, (_, i) => String.fromCharCode(97 + i));
 const simpleLenCharArr = simpleCharArr.length;
 
-function encodeCharSimple(char) {
+const encodeCharSimple = (char) => {
     let encodeChar = '';
     let index = -1;
     for (let i = 0; i < simpleLenCharArr; i++) {
@@ -22,7 +22,7 @@ function encodeCharSimple(char) {
     }
 }
 
-function decodeCharSimple(char) {
+const decodeCharSimple = (char) => {
     let decodeChar = '';
     let index = -1;
     for (let i = 0; i < simpleLenCharArr; i++) {
@@ -42,7 +42,7 @@ function decodeCharSimple(char) {
     }
 }
 
-function encodeText() {
+const encodeText = () => {
     let inputText = document.getElementById('inputText').value;
     let encodedText = '';
     for (let char of inputText) {
@@ -51,11 +51,21 @@ function encodeText() {
     document.getElementById('outputText').value = encodedText;
 }
 
-function decodeText() {
+const decodeText = () => {
     let inputText = document.getElementById('inputText').value;
     let decodeText = '';
     for (let char of inputText) {
         decodeText += decodeCharSimple(char.toLowerCase());
     }
     document.getElementById('outputText').value = decodeText;
+}
+
+const switchTab = (e) => {
+    let id = e.id;
+    document.querySelectorAll('.tab.active').forEach(function (element) {
+        element.classList.remove("active");
+    });
+    document.querySelectorAll('.tab#' + id).forEach(function (element) {
+        element.classList.add("active");
+    });
 }
