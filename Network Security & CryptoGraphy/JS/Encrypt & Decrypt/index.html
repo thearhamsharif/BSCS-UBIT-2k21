@@ -4,13 +4,18 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Cipher</title>
+        <title>Ciphers</title>
         <link rel="stylesheet" href="styles.css">
     </head>
 
     <body>
         <div class="container">
-            <h2>Cipher</h2>
+            <h2>Ciphers</h2>
+            <div class="tabs">
+                <button class="tab active" id="simple" onclick="switchTab('simple')">Simple Shifting</button>
+                <button class="tab" id="vigenere" onclick="switchTab('vigenere')">Vigenère</button>
+                <button class="tab" id="polyalphabetic" onclick="switchTab('polyalphabetic')">Polyalphabetic</button>
+            </div>
             <div class="input-field">
                 <label for="inputText">Enter Text:</label>
                 <input type="text" id="inputText">

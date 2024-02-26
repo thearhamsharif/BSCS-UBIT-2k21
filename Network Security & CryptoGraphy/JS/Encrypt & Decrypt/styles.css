@@ -81,3 +81,23 @@ h2 {
     width: 100%;
     text-align: center;
 }
+
+.tabs {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px 0px;
+}
+
+.tab {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.tab:hover, .tab.active {
+    background-color: #0056b3;
+}
