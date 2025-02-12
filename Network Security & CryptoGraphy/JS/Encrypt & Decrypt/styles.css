@@ -84,8 +84,9 @@ h2 {
 
 .tabs {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   margin: 20px 0px;
+  gap: 5px;
 }
 
 .tab {
