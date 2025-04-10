@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bucket
+   uuid = "0C96427C-8995-4915-93EA-EF9F20937F50"
+   type = "1"
+   version = "2.0">
+   <Breakpoints>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "62D6EEEB-D16A-4332-8C57-BDB1DD1CBADF"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "OperationalResearchProject/ViewModel/SimulationViewModel.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "54"
+            endingLineNumber = "54"
+            landmarkName = "getLookupData()"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "62D6EEEB-D16A-4332-8C57-BDB1DD1CBADF - 1080556b157949ef"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "OperationalResearchProject.RandomViewModel.getLookupData() -&gt; ()"
+                  moduleName = "OperationalResearchProject"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/hasantahir/UBIT/5th%20Semester/OR/OR%20Project/OperationalResearch/OperationalResearchProject/ViewModel/SimulationViewModel.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "42"
+                  endingLineNumber = "42"
+                  offsetFromSymbolStart = "852">
+               </Location>
+               <Location
+                  uuid = "62D6EEEB-D16A-4332-8C57-BDB1DD1CBADF - 1080556b157949ef"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "OperationalResearchProject.RandomViewModel.getLookupData() -&gt; ()"
+                  moduleName = "OperationalResearchProject"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/hasantahir/UBIT/5th%20Semester/OR/OR%20Project/OperationalResearch/OperationalResearchProject/ViewModel/SimulationViewModel.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "42"
+                  endingLineNumber = "42"
+                  offsetFromSymbolStart = "728">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "97341A77-18F1-4A69-A424-9088A61EFDD3"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "OperationalResearchProject/ViewModel/QueuingViewModel.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "205"
+            endingLineNumber = "205"
+            landmarkName = "calculateGoodFitTest()"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "97341A77-18F1-4A69-A424-9088A61EFDD3 - bd0638497bb2bd2c"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "OperationalResearchProject.QueuingViewModel.calculateGoodFitTest() -&gt; Swift.Optional&lt;OperationalResearchProject.FitTest&gt;"
+                  moduleName = "OperationalResearchProject"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/hasantahir/UBIT/5th%20Semester/OR/OR%20Project/OperationalResearch/OperationalResearchProject/ViewModel/QueuingViewModel.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "198"
+                  endingLineNumber = "198"
+                  offsetFromSymbolStart = "236">
+               </Location>
+               <Location
+                  uuid = "97341A77-18F1-4A69-A424-9088A61EFDD3 - bd0638497bb2bc35"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "OperationalResearchProject.QueuingViewModel.calculateGoodFitTest() -&gt; Swift.Optional&lt;OperationalResearchProject.FitTest&gt;"
+                  moduleName = "OperationalResearchProject"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/hasantahir/UBIT/5th%20Semester/OR/OR%20Project/OperationalResearch/OperationalResearchProject/ViewModel/QueuingViewModel.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "205"
+                  endingLineNumber = "205"
+                  offsetFromSymbolStart = "220">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "B9ED7A40-5DF1-4CBE-B477-475C7E1457CE"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "OperationalResearchProject/ViewModel/QueuingViewModel.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "49"
+            endingLineNumber = "49"
+            landmarkName = "calculateResults()"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+   </Breakpoints>
+</Bucket>
