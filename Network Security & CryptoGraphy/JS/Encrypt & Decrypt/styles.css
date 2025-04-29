@@ -33,7 +33,7 @@ h2 {
   color: #555;
 }
 
-.input-field input[type="text"] {
+.input-field input {
   width: 100%;
   padding: 10px;
   border: 1px solid #ccc;
@@ -83,7 +83,9 @@ h2 {
 }
 
 .tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  grid-auto-rows: auto;
   justify-content: center;
   margin: 20px 0px;
   gap: 5px;

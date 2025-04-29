@@ -126,13 +126,260 @@ function decryptVigenereShifting(message) {
   return result;
 }
 /*-----------------------*/
+/* OTP ENCRYPTION */
+const otpCharArr = Array.from({ length: 26 }, (_, i) => String.fromCharCode(97 + i));
+
+// Function to generate a random OTP key of the same length as the message
+const generateOtpKey = (length) => {
+  const charset = otpCharArr.join("");
+  let key = '';
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * charset.length);
+    key += charset[randomIndex];
+  }
+  return key;
+};
+
+// Function to save OTP key to local storage
+const saveOtpKeyToLocalStorage = (key) => {
+  localStorage.setItem('otpKey', key);
+};
+
+// Function to retrieve OTP key from local storage
+const getOtpKeyFromLocalStorage = () => {
+  return localStorage.getItem('otpKey');
+};
+
+// Function to encrypt message using OTP
+const encryptOtp = (message, key) => {
+  let result = '';
+  for (let i = 0; i < message.length; i++) {
+    const char = message.charAt(i);
+    if (otpCharArr.includes(char)) {
+      const messageIndex = otpCharArr.indexOf(char);
+      const keyIndex = otpCharArr.indexOf(key.charAt(i));
+      const encryptedChar = otpCharArr[(messageIndex + keyIndex) % otpCharArr.length];
+      result += encryptedChar;
+    } else {
+      result += char; // Non-alphabet characters remain unchanged
+    }
+  }
+  return result;
+};
+
+// Function to decrypt message using OTP
+const decryptOtp = (message, key) => {
+  let result = '';
+  for (let i = 0; i < message.length; i++) {
+    const char = message.charAt(i);
+    if (otpCharArr.includes(char)) {
+      const messageIndex = otpCharArr.indexOf(char);
+      const keyIndex = otpCharArr.indexOf(key.charAt(i));
+      const decryptedChar = otpCharArr[(messageIndex - keyIndex + otpCharArr.length) % otpCharArr.length];
+      result += decryptedChar;
+    } else {
+      result += char; // Non-alphabet characters remain unchanged
+    }
+  }
+  return result;
+};
+/*-----------------------*/
+/* RAIL FENCE ENCRYPTION */
+// Encrypt using Rail Fence Cipher
+function encryptRailFence(text, rails) {
+  if (rails <= 1) return text;
+
+  const fence = Array.from({ length: rails }, () => []);
+  let rail = 0;
+  let direction = 1; // 1 = down, -1 = up
+
+  for (const element of text) {
+    fence[rail].push(element);
+    rail += direction;
+
+    if (rail === 0 || rail === rails - 1) {
+      direction *= -1;
+    }
+  }
+
+  return fence.flat().join('');
+}
+
+// Decrypt using Rail Fence Cipher
+function decryptRailFence(cipher, rails) {
+  if (rails <= 1) return cipher;
+
+  // Step 1: Create an empty matrix with placeholders
+  const pattern = Array.from({ length: rails }, () => Array(cipher.length).fill(null));
+  let rail = 0;
+  let direction = 1;
+
+  for (let col = 0; col < cipher.length; col++) {
+    pattern[rail][col] = '*';
+    rail += direction;
+
+    if (rail === 0 || rail === rails - 1) {
+      direction *= -1;
+    }
+  }
+
+  // Step 2: Fill the pattern with actual characters
+  let index = 0;
+  for (let r = 0; r < rails; r++) {
+    for (let c = 0; c < cipher.length; c++) {
+      if (pattern[r][c] === '*' && index < cipher.length) {
+        pattern[r][c] = cipher[index++];
+      }
+    }
+  }
+
+  // Step 3: Read the message by zigzag
+  let result = '';
+  rail = 0;
+  direction = 1;
+
+  for (let col = 0; col < cipher.length; col++) {
+    result += pattern[rail][col];
+    rail += direction;
+
+    if (rail === 0 || rail === rails - 1) {
+      direction *= -1;
+    }
+  }
+
+  return result;
+}
+/*-----------------------*/
+/* PlayFair ENCRYPTION */
+const alphabetArr = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))
+    .filter(c => c !== 'J') // remove 'J'
+    .join('');
+
+    // Generate random Playfair key (5x5 grid)
+function generatePlayfairKey() {
+  const shuffled = [...alphabetArr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.join('');
+}
+
+// Save key to localStorage
+function savePlayfairKey(key) {
+  localStorage.setItem('playfairKey', key);
+}
+
+// Get or generate key from localStorage
+function getPlayfairKey() {
+  let key = localStorage.getItem('playfairKey');
+  if (!key) {
+    key = generatePlayfairKey();
+    savePlayfairKey(key);
+  }
+  return key;
+}
+
+// Create 5x5 key matrix from key
+function createMatrix(key) {
+  const matrix = [];
+  for (let i = 0; i < 25; i += 5) {
+    matrix.push(key.slice(i, i + 5).split(''));
+  }
+  return matrix;
+}
+
+// Find letter position in key matrix
+function findPosition(matrix, letter) {
+  for (let row = 0; row < 5; row++) {
+    const col = matrix[row].indexOf(letter);
+    if (col !== -1) return { row, col };
+  }
+  return null;
+}
+
+// Prepare text for Playfair cipher (remove non-letters, replace J with I, make pairs)
+function prepareText(text) {
+  text = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
+  let result = '';
+  for (let i = 0; i < text.length; i += 2) {
+    let a = text[i];
+    let b = text[i + 1] || 'X';
+    if (a === b) {
+      result += a + 'X';
+      i--;
+    } else {
+      result += a + b;
+    }
+  }
+  return result;
+}
+
+// Encrypt a pair of letters
+function encryptPair(a, b, matrix) {
+  const posA = findPosition(matrix, a);
+  const posB = findPosition(matrix, b);
+  if (posA.row === posB.row) {
+    return matrix[posA.row][(posA.col + 1) % 5] + matrix[posB.row][(posB.col + 1) % 5];
+  } else if (posA.col === posB.col) {
+    return matrix[(posA.row + 1) % 5][posA.col] + matrix[(posB.row + 1) % 5][posB.col];
+  } else {
+    return matrix[posA.row][posB.col] + matrix[posB.row][posA.col];
+  }
+}
+
+// Encrypt full message
+function encryptPlayfair(message) {
+  const key = getPlayfairKey();
+  const matrix = createMatrix(key);
+  const prepared = prepareText(message);
+  let encrypted = '';
+  for (let i = 0; i < prepared.length; i += 2) {
+    encrypted += encryptPair(prepared[i], prepared[i + 1], matrix);
+  }
+  return encrypted;
+}
+
+// Decrypt a pair of letters
+function decryptPair(a, b, matrix) {
+  const posA = findPosition(matrix, a);
+  const posB = findPosition(matrix, b);
+  if (posA.row === posB.row) {
+    return matrix[posA.row][(posA.col + 4) % 5] + matrix[posB.row][(posB.col + 4) % 5];
+  } else if (posA.col === posB.col) {
+    return matrix[(posA.row + 4) % 5][posA.col] + matrix[(posB.row + 4) % 5][posB.col];
+  } else {
+    return matrix[posA.row][posB.col] + matrix[posB.row][posA.col];
+  }
+}
+
+// Decrypt full message
+function decryptPlayfair(cipherText) {
+  const key = getPlayfairKey();
+  const matrix = createMatrix(key);
+  let decrypted = '';
+  for (let i = 0; i < cipherText.length; i += 2) {
+    decrypted += decryptPair(cipherText[i], cipherText[i + 1], matrix);
+  }
+  return decrypted;
+}
+/*-----------------------*/
 
 const encodeText = () => {
   let inputText = document.getElementById('inputText').value;
   let encodedText = '';
   let activeTabId = document.querySelector('.tab.active').id;
-  if (activeTabId == 'vigenere') {
+  if (activeTabId === 'otp') {
+    const otpKey = generateOtpKey(inputText.length);
+    saveOtpKeyToLocalStorage(otpKey);
+    encodedText += encryptOtp(inputText.toLowerCase(), otpKey);
+  } else if (activeTabId == 'railfence') {
+    let rails = document.getElementById('rails').value;
+    encodedText += encryptRailFence(inputText.toLowerCase(), rails);
+  } else if (activeTabId == 'vigenere') {
     encodedText += encryptVigenereShifting(inputText.toLowerCase());
+  } else if (activeTabId == 'playfair') {
+    encodedText += encryptPlayfair(inputText.toUpperCase()).toLowerCase();
   } else {
     for (let char of inputText) {
       if (activeTabId == 'simple') {
@@ -147,28 +394,42 @@ const encodeText = () => {
 
 const decodeText = () => {
   let inputText = document.getElementById('inputText').value;
-  let decodeText = '';
+  let decodedText = '';
   let activeTabId = document.querySelector('.tab.active').id;
-  if (activeTabId == 'vigenere') {
-    decodeText += decryptVigenereShifting(inputText.toLowerCase());
+  if (activeTabId === 'otp') {
+    const otpKey = getOtpKeyFromLocalStorage();
+    decodedText += decryptOtp(inputText.toLowerCase(), otpKey);
+  } else if (activeTabId == 'railfence') {
+    let rails = document.getElementById('rails').value;
+    decodedText += decryptRailFence(inputText.toLowerCase(), rails);
+  }  else if (activeTabId == 'vigenere') {
+    decodedText += decryptVigenereShifting(inputText.toLowerCase());
+  } else if (activeTabId == 'playfair') {
+    decodedText += decryptPlayfair(inputText.toUpperCase()).toLowerCase();
   } else {
     for (let char of inputText) {
       if (activeTabId == 'simple') {
-        decodeText += decodeCharSimple(char.toLowerCase());
+        decodedText += decodeCharSimple(char.toLowerCase());
       } else if (activeTabId == 'polyalphabetic') {
-        decodeText += '';
+        decodedText += '';
       }
     }
   }
-  document.getElementById('outputText').value = decodeText;
+  document.getElementById('outputText').value = decodedText;
 }
 
 const switchTab = (e) => {
   let id = e.id;
+
+  document.querySelectorAll('.hide').forEach(el => el.style.display = 'none');
+  
   document.querySelectorAll('.tab.active').forEach(function (element) {
     element.classList.remove("active");
   });
   document.querySelectorAll('.tab#' + id).forEach(function (element) {
     element.classList.add("active");
   });
+
+  let activeTabId = document.querySelector('.tab.active').id;
+  document.querySelectorAll('.'+ activeTabId).forEach(el => el.style.display = 'block');
 }

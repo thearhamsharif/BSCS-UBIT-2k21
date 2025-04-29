@@ -13,12 +13,18 @@
       <h2>Ciphers</h2>
       <div class="tabs">
         <button class="tab active" id="simple" onclick="switchTab(this)">Simple Shifting</button>
+        <button class="tab" id="otp" onclick="switchTab(this)">OTP</button>
+        <button class="tab" id="railfence" onclick="switchTab(this)">Rail Fence</button>
+        <button class="tab" id="playfair" onclick="switchTab(this)">PlayFair</button>
         <button class="tab" id="vigenere" onclick="switchTab(this)">Vigenère</button>
-        <button class="tab" id="polyalphabetic" onclick="switchTab(this)">Polyalphabetic</button>
       </div>
       <div class="input-field">
         <label for="inputText">Enter Text:</label>
         <input type="text" id="inputText">
+      </div>
+      <div class="input-field railfence hide" style="display: none;">
+        <label for="rails">Enter Rails:</label>
+        <input type="number" id="rails">
       </div>
       <div class="btn-div">
         <button class="btn" onclick="encodeText()">Encode</button>
