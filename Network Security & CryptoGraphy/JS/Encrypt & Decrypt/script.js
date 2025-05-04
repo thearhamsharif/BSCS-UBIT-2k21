@@ -364,6 +364,111 @@ function decryptPlayfair(cipherText) {
   return decrypted;
 }
 /*-----------------------*/
+/* HILL ENCRYPTION */
+
+// Define alphabet and modulus
+const hillAlphabet = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
+const hillMod = hillAlphabet.length; // for mod 26 arithmetic (A-Z)
+
+// Convert a character to its index (A=0, B=1, ..., Z=25)
+const hillCharToIndex = char => hillAlphabet.indexOf(char.toUpperCase());
+
+// Convert an index to a character
+const hillIndexToChar = index => {
+  return hillAlphabet[(index + hillMod) % hillMod];
+};
+
+// Compute GCD (used for checking if determinant is invertible mod 26)
+function hillGCD(a, b) {
+  return b === 0 ? a : hillGCD(b, a % b);
+}
+
+// Compute modular inverse of a number mod m
+function hillModInverse(a, m) {
+  a = ((a % m) + m) % m;
+  for (let x = 1; x < m; x++) {
+    if ((a * x) % m === 1) return x;
+  }
+  return null;
+}
+
+// Generate a valid 2x2 key matrix and save to localStorage
+function hillGenerateKeyMatrix() {
+  let matrix, det;
+  do {
+    // Random 2x2 matrix
+    matrix = [
+      [Math.floor(Math.random() * 26), Math.floor(Math.random() * 26)],
+      [Math.floor(Math.random() * 26), Math.floor(Math.random() * 26)]
+    ];
+    // Calculate determinant
+    det = (matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]) % hillMod;
+  } while (hillGCD(det, hillMod) !== 1); // Repeat if matrix not invertible
+
+  // Save key to localStorage
+  localStorage.setItem("hillKeyMatrix", JSON.stringify(matrix));
+  return matrix;
+}
+
+// Get the key matrix from localStorage or generate one
+function hillGetKeyMatrix() {
+  return JSON.parse(localStorage.getItem("hillKeyMatrix")) || hillGenerateKeyMatrix();
+}
+
+// Invert a 2x2 matrix mod 26
+function hillInvertMatrix(matrix) {
+  const [[a, b], [c, d]] = matrix;
+  const det = (a * d - b * c + hillMod) % hillMod;
+  const invDet = hillModInverse(det, hillMod);
+  if (invDet === null) throw new Error("Matrix not invertible");
+
+  // Return inverse matrix mod 26
+  return [
+    [(d * invDet) % hillMod, (-b * invDet + hillMod) % hillMod],
+    [(-c * invDet + hillMod) % hillMod, (a * invDet) % hillMod]
+  ];
+}
+
+// Encrypt plaintext using Hill Cipher
+function hillEncrypt(plaintext) {
+  const matrix = hillGetKeyMatrix();
+  plaintext = plaintext.replace(/[^A-Z]/g, ''); // Remove non-alphabetic characters
+
+  // Ensure even length by padding with 'X'
+  if (plaintext.length % 2 !== 0) plaintext += 'X';
+
+  let result = "";
+  for (let i = 0; i < plaintext.length; i += 2) {
+    const p1 = hillCharToIndex(plaintext[i]);
+    const p2 = hillCharToIndex(plaintext[i + 1]);
+    // Matrix multiplication: C = K × P mod 26
+    const c1 = (matrix[0][0] * p1 + matrix[0][1] * p2) % hillMod;
+    const c2 = (matrix[1][0] * p1 + matrix[1][1] * p2) % hillMod;
+    result += hillIndexToChar(c1) + hillIndexToChar(c2);
+  }
+  return result;
+}
+
+// Decrypt ciphertext using Hill Cipher
+function hillDecrypt(ciphertext) {
+  const matrix = hillGetKeyMatrix();
+  const inverseMatrix = hillInvertMatrix(matrix);
+  ciphertext = ciphertext.replace(/[^A-Z]/g, ''); // Remove non-alphabetic characters
+
+  let result = "";
+  for (let i = 0; i < ciphertext.length; i += 2) {
+    const c1 = hillCharToIndex(ciphertext[i]);
+    const c2 = hillCharToIndex(ciphertext[i + 1]);
+    // Matrix multiplication: P = K⁻¹ × C mod 26
+    const p1 = (inverseMatrix[0][0] * c1 + inverseMatrix[0][1] * c2) % hillMod;
+    const p2 = (inverseMatrix[1][0] * c1 + inverseMatrix[1][1] * c2) % hillMod;
+    result += hillIndexToChar(p1) + hillIndexToChar(p2);
+  }
+
+  // Remove padding 'X' if it's at the end
+  return result.replace(/X$/, ''); 
+}
+/*-----------------------*/
 
 const encodeText = () => {
   let inputText = document.getElementById('inputText').value;
@@ -380,6 +485,8 @@ const encodeText = () => {
     encodedText += encryptVigenereShifting(inputText.toLowerCase());
   } else if (activeTabId == 'playfair') {
     encodedText += encryptPlayfair(inputText.toUpperCase()).toLowerCase();
+  } else if(activeTabId == 'hill') {
+    encodedText += hillEncrypt(inputText.toUpperCase()).toLowerCase();
   } else {
     for (let char of inputText) {
       if (activeTabId == 'simple') {
@@ -406,6 +513,8 @@ const decodeText = () => {
     decodedText += decryptVigenereShifting(inputText.toLowerCase());
   } else if (activeTabId == 'playfair') {
     decodedText += decryptPlayfair(inputText.toUpperCase()).toLowerCase();
+  } else if(activeTabId == 'hill') {
+    decodedText += hillDecrypt(inputText.toUpperCase()).toLowerCase();
   } else {
     for (let char of inputText) {
       if (activeTabId == 'simple') {
