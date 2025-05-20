@@ -252,10 +252,10 @@ function decryptRailFence(cipher, rails) {
 /*-----------------------*/
 /* PlayFair ENCRYPTION */
 const alphabetArr = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i))
-    .filter(c => c !== 'J') // remove 'J'
-    .join('');
+  .filter(c => c !== 'J') // remove 'J'
+  .join('');
 
-    // Generate random Playfair key (5x5 grid)
+// Generate random Playfair key (5x5 grid)
 function generatePlayfairKey() {
   const shuffled = [...alphabetArr];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -466,7 +466,105 @@ function hillDecrypt(ciphertext) {
   }
 
   // Remove padding 'X' if it's at the end
-  return result.replace(/X$/, ''); 
+  return result.replace(/X$/, '');
+}
+/*-----------------------*/
+/* TRANSPOSITION ENCRYPTION */
+const TRANS_KEY_STORAGE = "transpositionKey"; // Key storage name in localStorage
+
+// Generate a random key of given length (e.g., 6 unique A-Z characters)
+function generateTranspositionKey(length = 6) {
+  const chars = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)).join('');
+  let key = "";
+  while (key.length < length) {
+    const char = chars[Math.floor(Math.random() * chars.length)];
+    if (!key.includes(char)) {
+      key += char;
+    }
+  }
+  return key;
+}
+
+// Save generated key to localStorage
+function saveTranspositionKeyToLocalStorage(key) {
+  localStorage.setItem(TRANS_KEY_STORAGE, key);
+}
+
+// Retrieve key from localStorage or generate one if not present
+function getTranspositionKeyFromLocalStorage(length = 6) {
+  let key = localStorage.getItem(TRANS_KEY_STORAGE);
+  if (!key) {
+    key = generateTranspositionKey(length);
+    saveTranspositionKeyToLocalStorage(key);
+  }
+  return key;
+}
+
+// Get column order based on alphabetical sorting of key characters
+function getTranspositionKeyOrder(key) {
+  return key
+    .split('')
+    .map((char, index) => ({ char, index }))     // Keep original index
+    .sort((a, b) => a.char.localeCompare(b.char)) // Sort alphabetically
+    .map(obj => obj.index);                       // Extract sorted indexes
+}
+
+// === ENCRYPTION ===
+function encryptTranspositionCipher(plaintext) {
+  plaintext = plaintext.replace(/[^A-Z]/g, ''); 
+  const key = getTranspositionKeyFromLocalStorage();
+  const numCols = key.length;
+  const keyOrder = getTranspositionKeyOrder(key);
+  const numRows = Math.ceil(plaintext.length / numCols);
+
+  // Fill matrix row by row
+  const matrix = [];
+  let index = 0;
+  for (let r = 0; r < numRows; r++) {
+    matrix[r] = [];
+    for (let c = 0; c < numCols; c++) {
+      matrix[r][c] = plaintext[index++] || 'X'; // Fill with 'X' if not enough chars
+    }
+  }
+
+  // Read matrix column-wise in key order
+  let ciphertext = '';
+  for (const colIndex of keyOrder) {
+    for (let r = 0; r < numRows; r++) {
+      ciphertext += matrix[r][colIndex];
+    }
+  }
+
+  return ciphertext;
+}
+
+// === DECRYPTION ===
+function decryptTranspositionCipher(ciphertext) {
+  ciphertext = ciphertext.replace(/[^A-Z]/g, ''); 
+  const key = getTranspositionKeyFromLocalStorage();
+  const numCols = key.length;
+  const numRows = Math.ceil(ciphertext.length / numCols);
+  const keyOrder = getTranspositionKeyOrder(key);
+
+  // Build inverse of key order (to determine original column positions)
+  const inverseKeyOrder = new Array(numCols);
+  keyOrder.forEach((sortedIndex, originalIndex) => {
+    inverseKeyOrder[sortedIndex] = originalIndex;
+  });
+
+  // Fill the matrix column-wise
+  const matrix = Array.from({ length: numRows }, () => []);
+  let index = 0;
+  for (let i = 0; i < numCols; i++) {
+    const colIndex = inverseKeyOrder[i];
+    for (let r = 0; r < numRows; r++) {
+      matrix[r][colIndex] = ciphertext[index++];
+    }
+  }
+
+  // Read the matrix row-wise to reconstruct plaintext
+  const plaintext = matrix.map(row => row.join('')).join('');
+  return plaintext.replace(/X+$/g, ''); // Remove trailing 'X' padding
 }
 /*-----------------------*/
 
@@ -485,8 +583,10 @@ const encodeText = () => {
     encodedText += encryptVigenereShifting(inputText.toLowerCase());
   } else if (activeTabId == 'playfair') {
     encodedText += encryptPlayfair(inputText.toUpperCase()).toLowerCase();
-  } else if(activeTabId == 'hill') {
+  } else if (activeTabId == 'hill') {
     encodedText += hillEncrypt(inputText.toUpperCase()).toLowerCase();
+  } else if (activeTabId == 'transposition') {
+    encodedText += encryptTranspositionCipher(inputText.toUpperCase()).toLowerCase();
   } else {
     for (let char of inputText) {
       if (activeTabId == 'simple') {
@@ -509,12 +609,14 @@ const decodeText = () => {
   } else if (activeTabId == 'railfence') {
     let rails = document.getElementById('rails').value;
     decodedText += decryptRailFence(inputText.toLowerCase(), rails);
-  }  else if (activeTabId == 'vigenere') {
+  } else if (activeTabId == 'vigenere') {
     decodedText += decryptVigenereShifting(inputText.toLowerCase());
   } else if (activeTabId == 'playfair') {
     decodedText += decryptPlayfair(inputText.toUpperCase()).toLowerCase();
-  } else if(activeTabId == 'hill') {
+  } else if (activeTabId == 'hill') {
     decodedText += hillDecrypt(inputText.toUpperCase()).toLowerCase();
+  } else if (activeTabId == 'transposition') {
+    decodedText += decryptTranspositionCipher(inputText.toUpperCase()).toLowerCase();
   } else {
     for (let char of inputText) {
       if (activeTabId == 'simple') {
@@ -531,7 +633,7 @@ const switchTab = (e) => {
   let id = e.id;
 
   document.querySelectorAll('.hide').forEach(el => el.style.display = 'none');
-  
+
   document.querySelectorAll('.tab.active').forEach(function (element) {
     element.classList.remove("active");
   });
@@ -540,5 +642,5 @@ const switchTab = (e) => {
   });
 
   let activeTabId = document.querySelector('.tab.active').id;
-  document.querySelectorAll('.'+ activeTabId).forEach(el => el.style.display = 'block');
+  document.querySelectorAll('.' + activeTabId).forEach(el => el.style.display = 'block');
 }
