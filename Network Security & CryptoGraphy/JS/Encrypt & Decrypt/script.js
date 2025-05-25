@@ -511,7 +511,7 @@ function getTranspositionKeyOrder(key) {
 
 // === ENCRYPTION ===
 function encryptTranspositionCipher(plaintext) {
-  plaintext = plaintext.replace(/[^A-Z]/g, ''); 
+  plaintext = plaintext.replace(/[^A-Z]/g, '');
   const key = getTranspositionKeyFromLocalStorage();
   const numCols = key.length;
   const keyOrder = getTranspositionKeyOrder(key);
@@ -540,24 +540,29 @@ function encryptTranspositionCipher(plaintext) {
 
 // === DECRYPTION ===
 function decryptTranspositionCipher(ciphertext) {
-  ciphertext = ciphertext.replace(/[^A-Z]/g, ''); 
+  ciphertext = ciphertext.replace(/[^A-Z]/g, '');
   const key = getTranspositionKeyFromLocalStorage();
   const numCols = key.length;
   const numRows = Math.ceil(ciphertext.length / numCols);
   const keyOrder = getTranspositionKeyOrder(key);
 
-  // Build inverse of key order (to determine original column positions)
-  const inverseKeyOrder = new Array(numCols);
-  keyOrder.forEach((sortedIndex, originalIndex) => {
-    inverseKeyOrder[sortedIndex] = originalIndex;
-  });
+  // Determine how many full columns there are (some may be shorter)
+  const totalChars = ciphertext.length;
+  const shortCols = (numCols * numRows) - totalChars;
+
+  // Determine how many characters in each column
+  const colLengths = Array(numCols).fill(numRows);
+  for (let i = numCols - shortCols; i < numCols; i++) {
+    colLengths[keyOrder[i]] = numRows - 1;
+  }
 
   // Fill the matrix column-wise
   const matrix = Array.from({ length: numRows }, () => []);
   let index = 0;
   for (let i = 0; i < numCols; i++) {
-    const colIndex = inverseKeyOrder[i];
-    for (let r = 0; r < numRows; r++) {
+    const colIndex = keyOrder[i];
+    const colLen = colLengths[colIndex];
+    for (let r = 0; r < colLen; r++) {
       matrix[r][colIndex] = ciphertext[index++];
     }
   }
