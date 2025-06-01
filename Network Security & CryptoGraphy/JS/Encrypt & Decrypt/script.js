@@ -883,6 +883,108 @@ function decryptDes(ciphertextBase64) {
   return encryptDes(ciphertext, true);
 }
 /*-----------------------*/
+/* RSA ENCRYPTION */
+
+// Utility functions
+function gcd(a, b) {
+  return b === 0 ? a : gcd(b, a % b);
+}
+
+function modInverse(e, phi) {
+  let [m0, x0, x1] = [phi, 0, 1];
+  while (e > 1) {
+    const q = Math.floor(e / phi);
+    [e, phi] = [phi, e % phi];
+    [x0, x1] = [x1 - q * x0, x0];
+  }
+  return x1 < 0 ? x1 + m0 : x1;
+}
+
+function isPrime(n) {
+  if (n < 2) return false;
+  for (let i = 2; i <= Math.sqrt(n); i++) {
+    if (n % i === 0) return false;
+  }
+  return true;
+}
+
+function getRandomPrime(min = 50, max = 100) {
+  let p;
+  do {
+    p = Math.floor(Math.random() * (max - min)) + min;
+  } while (!isPrime(p));
+  return p;
+}
+
+// RSA Key Generation
+function generateRsaKeys() {
+  const p = getRandomPrime();
+  let q;
+  do {
+    q = getRandomPrime();
+  } while (q === p);
+
+  const n = p * q;
+  const phi = (p - 1) * (q - 1);
+  let e = 3;
+  while (gcd(e, phi) !== 1) e++;
+
+  const d = modInverse(e, phi);
+
+  const publicKey = { e, n };
+  const privateKey = { d, n };
+  const keys = { p, q, n, e, d, publicKey, privateKey };
+
+  localStorage.setItem("rsa_keys", JSON.stringify(keys));
+  return keys;
+}
+
+function getRsaKeys() {
+  const keys = localStorage.getItem("rsa_keys");
+  return keys ? JSON.parse(keys) : generateRsaKeys();
+}
+
+function modPow(base, exp, mod) {
+  let result = 1;
+  base = base % mod;
+  while (exp > 0) {
+    if (exp % 2 === 1) result = (result * base) % mod;
+    base = (base * base) % mod;
+    exp = Math.floor(exp / 2);
+  }
+  return result;
+}
+
+function textToNumbers(text) {
+  return Array.from(text).map(char => char.charCodeAt(0));
+}
+
+function numbersToText(nums) {
+  return nums.map(num => String.fromCharCode(num)).join('');
+}
+
+function encryptRSA(m) {
+  const publicKey = getRsaKeys().publicKey;
+  const { e, n } = publicKey;
+  return modPow(m, e, n);
+}
+
+function encryptTextRSA(text) {
+  const numbers = textToNumbers(text);
+  return numbers.map(num => encryptRSA(num));
+}
+
+function decryptRSA(c) {
+  const privateKey = getRsaKeys().privateKey;
+  const { d, n } = privateKey;
+  return modPow(c, d, n);
+}
+
+function decryptTextRSA(cipherArray) {
+  const decryptedNums = cipherArray.map(c => decryptRSA(c));
+  return numbersToText(decryptedNums);
+}
+/*-----------------------*/
 
 const encodeText = () => {
   let inputText = document.getElementById('inputText').value;
@@ -905,6 +1007,8 @@ const encodeText = () => {
     encodedText += encryptTranspositionCipher(inputText.toUpperCase()).toLowerCase();
   } else if (activeTabId == 'des') {
     encodedText += encryptDes(inputText);
+  } else if (activeTabId == 'rsa') {
+    encodedText += encryptTextRSA(inputText).join(',');
   } else {
     for (let char of inputText) {
       if (activeTabId == 'simple') {
@@ -937,6 +1041,8 @@ const decodeText = () => {
     decodedText += decryptTranspositionCipher(inputText.toUpperCase()).toLowerCase();
   } else if (activeTabId == 'des') {
     decodedText += decryptDes(inputText);
+  } else if (activeTabId == 'rsa') {
+    decodedText += decryptTextRSA(inputText.split(',').map(Number));
   } else {
     for (let char of inputText) {
       if (activeTabId == 'simple') {
