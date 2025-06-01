@@ -75,8 +75,15 @@ function saveVigenereToLocalStorage(key, charArr) {
 
 // Function to retrieve Vigenère key and character array from local storage
 function getVigenereFromLocalStorage() {
-  const key = localStorage.getItem('vigenereKey');
-  const charArr = JSON.parse(localStorage.getItem('vigenereCharArr'));
+  let key = localStorage.getItem('vigenereKey');
+  let charArr = JSON.parse(localStorage.getItem('vigenereCharArr'));
+
+  if (!key || !charArr) {
+    key = generateVigenereRandomKey(6); // Change the length as needed
+    charArr = generateVigenereCharArr(randomKey);
+    saveVigenereToLocalStorage(key, charArr);
+  }
+
   return { key, charArr };
 }
 
@@ -147,7 +154,11 @@ const saveOtpKeyToLocalStorage = (key) => {
 
 // Function to retrieve OTP key from local storage
 const getOtpKeyFromLocalStorage = () => {
-  return localStorage.getItem('otpKey');
+  let key = localStorage.getItem('otpKey');
+  if (!key) {
+    key = -1
+  }
+  return key;
 };
 
 // Function to encrypt message using OTP
@@ -169,6 +180,10 @@ const encryptOtp = (message, key) => {
 
 // Function to decrypt message using OTP
 const decryptOtp = (message, key) => {
+  if (key == -1) {
+    return "OTP key not found";
+  }
+
   let result = '';
   for (let i = 0; i < message.length; i++) {
     const char = message.charAt(i);
@@ -335,7 +350,7 @@ function encryptPlayfair(message) {
   const prepared = prepareText(message);
   let encrypted = '';
   for (let i = 0; i < prepared.length; i += 2) {
-    encrypted += encryptPair(prepared[i], prepared[i + 1], matrix);
+    encrypted += encryptPair(prepared[i], prepared[i + 1] ?? 'X', matrix);
   }
   return encrypted;
 }
@@ -355,11 +370,13 @@ function decryptPair(a, b, matrix) {
 
 // Decrypt full message
 function decryptPlayfair(cipherText) {
+  cipherText = cipherText.replace(/[^A-Z]/g, '').toUpperCase();
+
   const key = getPlayfairKey();
   const matrix = createMatrix(key);
   let decrypted = '';
   for (let i = 0; i < cipherText.length; i += 2) {
-    decrypted += decryptPair(cipherText[i], cipherText[i + 1], matrix);
+    decrypted += decryptPair(cipherText[i], cipherText[i + 1] ?? 'X', matrix);
   }
   return decrypted;
 }
@@ -371,7 +388,7 @@ const hillAlphabet = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65
 const hillMod = hillAlphabet.length; // for mod 26 arithmetic (A-Z)
 
 // Convert a character to its index (A=0, B=1, ..., Z=25)
-const hillCharToIndex = char => hillAlphabet.indexOf(char.toUpperCase());
+const hillCharToIndex = char => hillAlphabet.indexOf(char);
 
 // Convert an index to a character
 const hillIndexToChar = index => {
@@ -879,8 +896,12 @@ function encryptDes(plaintext, decrypt = false) {
 
 // For decrypt, input ciphertext should be base64 string
 function decryptDes(ciphertextBase64) {
-  let ciphertext = atob(ciphertextBase64);
-  return encryptDes(ciphertext, true);
+  try {
+    const ciphertext = atob(ciphertextBase64);
+    return encryptDes(ciphertext, true); // assuming this decrypts
+  } catch (e) {
+    return e.message;
+  }
 }
 /*-----------------------*/
 /* RSA ENCRYPTION */
