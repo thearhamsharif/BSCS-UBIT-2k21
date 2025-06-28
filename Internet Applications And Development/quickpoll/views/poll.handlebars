@@ -1,0 +1,45 @@
+<h2>{{poll.question}}</h2>
+{{#if hasVoted}}
+  <div class="alert alert-info fade show">You have already voted.</div>
+{{else}}
+  {{#ifCond poll.status 'Active'}}
+    <form method="POST" action="/polls/{{poll._id}}/vote">
+      {{#each poll.options}}
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="option" value="{{this}}" required>
+          <label class="form-check-label">{{this}}</label>
+        </div>
+      {{/each}}
+      <button type="submit" class="btn btn-primary mt-3">Vote</button>
+    </form>
+{{else}}
+  <h5 class="text-muted mt-2">Poll is closed.</h5>
+  {{/ifCond}}
+
+{{/if}}
+
+<h3 class="mt-4">Live Results</h3>
+{{#ifCond poll.status 'Closed'}}
+  {{#if isTie}}
+    <div class="alert alert-warning fade show">It's a tie between: {{join winners ", "}}</div>
+  {{else}}
+    <div class="alert alert-success fade show">Winner: {{winners.[0]}}</div>
+  {{/if}}
+{{/ifCond}}
+
+<ul class="list-group">
+  {{#each optionVotes}}
+    <li class="list-group-item d-flex align-items-center justify-content-between {{#if isWinner}}list-group-item-info fw-bold{{/if}}" style="gap: 10px;">
+      <span>{{name}}</span>
+      <span class="border-start ps-2">{{votes}} votes</span>
+    </li>
+  {{/each}}
+</ul>
+
+{{#if isCreator}}
+  {{#ifCond poll.status 'Active'}}
+    <form method="POST" action="/polls/{{poll._id}}/close" class="mt-3">
+      <button type="submit" class="btn btn-danger">Close Poll</button>
+    </form>
+  {{/ifCond}}
+{{/if}}

@@ -1,0 +1,10 @@
+<h1 class="mb-4">All Polls</h1>
+<a href="/create" class="btn btn-primary mb-3">Create New Poll</a>
+<ul class="list-group">
+  {{#each polls}}
+    <li class="list-group-item d-flex align-items-center justify-content-between" style="gap: 10px;">
+      <span>{{this.question}}</span>
+      <a href="/polls/{{this._id}}" class="btn btn-sm btn-outline-primary">View</a>
+    </li>
+  {{/each}}
+</ul>

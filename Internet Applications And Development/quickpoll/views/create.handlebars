@@ -1,0 +1,31 @@
+<h2>Create Poll</h2>
+
+{{#if error}}
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+  {{error}}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+
+{{/if}}
+
+<form method="POST" action="/polls">
+  <div class="mb-3">
+    <label class="form-label">Question</label>
+    <input type="text" class="form-control" name="question" required value="{{old.question}}">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Options</label>
+    <div class="form-row">
+      <div class="col">
+        <input type="text" class="form-control mb-2" name="options[]" required placeholder="Option 1" value="{{lookup old.options 0}}">
+      </div>
+      <div class="col">
+        <input type="text" class="form-control mb-2" name="options[]" required placeholder="Option 2" value="{{lookup old.options 1}}">
+      </div>
+      <div class="col">
+        <input type="text" class="form-control mb-2" name="options[]" required placeholder="Option 3" value="{{lookup old.options 2}}">
+      </div>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-success">Create Poll</button>
+</form>
