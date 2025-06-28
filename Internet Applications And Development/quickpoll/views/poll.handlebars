@@ -1,45 +1,66 @@
-<h2>{{poll.question}}</h2>
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h1 class="mb-0">{{poll.question}}</h1>
+
+  <button class="btn btn-outline-secondary btn-sm copy-link-btn">
+    <i class="fa-solid fa-link"></i> Copy Link
+  </button>
+</div>
+
 {{#if hasVoted}}
-  <div class="alert alert-info fade show">You have already voted.</div>
+  <div class="alert alert-info" role="alert">
+    <i class="fa-solid fa-circle-check me-1"></i> You have already voted.
+  </div>
 {{else}}
   {{#ifCond poll.status 'Active'}}
-    <form method="POST" action="/polls/{{poll._id}}/vote">
+    <form method="POST" action="/polls/{{poll._id}}/vote" class="mb-4">
       {{#each poll.options}}
         <div class="form-check">
-          <input class="form-check-input" type="radio" name="option" value="{{this}}" required>
-          <label class="form-check-label">{{this}}</label>
+          <input class="form-check-input" type="radio" name="option" value="{{this}}" id="option-{{@index}}" required>
+          <label class="form-check-label" for="option-{{@index}}">{{this}}</label>
         </div>
       {{/each}}
-      <button type="submit" class="btn btn-primary mt-3">Vote</button>
+      <button type="submit" class="btn btn-primary mt-3 btn-lg">
+        <i class="fa-solid fa-paper-plane"></i> Vote
+      </button>
     </form>
 {{else}}
-  <h5 class="text-muted mt-2">Poll is closed.</h5>
+  <div class="alert alert-secondary">
+    <i class="fa-solid fa-lock me-1"></i> Poll is closed.
+  </div>
   {{/ifCond}}
 
 {{/if}}
 
-<h3 class="mt-4">Live Results</h3>
+<h2 class="mt-4">Live Results</h2>
+
 {{#ifCond poll.status 'Closed'}}
   {{#if isTie}}
-    <div class="alert alert-warning fade show">It's a tie between: {{join winners ", "}}</div>
+    <div class="alert alert-warning">
+      🤝 It's a tie between: <strong>{{join winners ", "}}</strong>
+    </div>
   {{else}}
-    <div class="alert alert-success fade show">Winner: {{winners.[0]}}</div>
+    <div class="alert alert-success">
+      🏆 Winner: <strong>{{winners.[0]}}</strong>
+    </div>
   {{/if}}
 {{/ifCond}}
 
-<ul class="list-group">
+<ul class="list-group mb-3">
   {{#each optionVotes}}
-    <li class="list-group-item d-flex align-items-center justify-content-between {{#if isWinner}}list-group-item-info fw-bold{{/if}}" style="gap: 10px;">
+    <li class="list-group-item d-flex align-items-center justify-content-between {{#if isWinner}}list-group-item-info fw-bold{{/if}} gap-2">
       <span>{{name}}</span>
       <span class="border-start ps-2">{{votes}} votes</span>
     </li>
   {{/each}}
 </ul>
 
+
 {{#if isCreator}}
   {{#ifCond poll.status 'Active'}}
-    <form method="POST" action="/polls/{{poll._id}}/close" class="mt-3">
-      <button type="submit" class="btn btn-danger">Close Poll</button>
+    <form method="POST" action="/polls/{{poll._id}}/close">
+      <button type="submit" class="btn btn-danger btn-lg">
+        <i class="fa-solid fa-ban"></i> Close Poll
+      </button>
     </form>
   {{/ifCond}}
 {{/if}}

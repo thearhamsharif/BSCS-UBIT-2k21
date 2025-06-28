@@ -1,5 +1,7 @@
+// Imports
 import mongoose from 'mongoose';
 
+// Define schema
 const pollSchema = new mongoose.Schema({
   question: {
     type: String,
@@ -26,6 +28,8 @@ const pollSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
+// Define model
 const Poll = mongoose.model('Poll', pollSchema);
 
+// Export poll
 export default Poll;

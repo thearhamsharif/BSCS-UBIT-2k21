@@ -1,31 +1,35 @@
-<h2>Create Poll</h2>
+<h1 class="mb-4">Create Poll</h1>
 
 {{#if error}}
   <div class="alert alert-danger alert-dismissible fade show" role="alert">
-  {{error}}
-  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
-
+    {{error}}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
 {{/if}}
 
 <form method="POST" action="/polls">
-  <div class="mb-3">
-    <label class="form-label">Question</label>
-    <input type="text" class="form-control" name="question" required value="{{old.question}}">
+  <div class="mb-4">
+    <label class="form-label fw-semibold" for="question">Question</label>
+    <input type="text" class="form-control shadow-sm" id="question" name="question" required value="{{old.question}}" placeholder="Enter your poll question" aria-describedby="questionHelp"/>
+    <div id="questionHelp" class="form-text">
+      Please enter the poll question.
+    </div>
   </div>
-  <div class="mb-3">
-    <label class="form-label">Options</label>
-    <div class="form-row">
-      <div class="col">
-        <input type="text" class="form-control mb-2" name="options[]" required placeholder="Option 1" value="{{lookup old.options 0}}">
+
+  <div class="mb-4">
+    <label class="form-label fw-semibold">Options</label>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <input type="text" class="form-control shadow-sm" name="options[]" required placeholder="Option 1" value="{{lookup old.options 0}}" aria-label="Option 1"/>
       </div>
-      <div class="col">
-        <input type="text" class="form-control mb-2" name="options[]" required placeholder="Option 2" value="{{lookup old.options 1}}">
+      <div class="col-md-4">
+        <input type="text" class="form-control shadow-sm" name="options[]" required placeholder="Option 2" value="{{lookup old.options 1}}" aria-label="Option 2"/>
       </div>
-      <div class="col">
-        <input type="text" class="form-control mb-2" name="options[]" required placeholder="Option 3" value="{{lookup old.options 2}}">
+      <div class="col-md-4">
+        <input type="text" class="form-control shadow-sm" name="options[]" required placeholder="Option 3" value="{{lookup old.options 2}}" aria-label="Option 3"/>
       </div>
     </div>
   </div>
-  <button type="submit" class="btn btn-success">Create Poll</button>
+
+  <button type="submit" class="btn btn-success btn-lg"> <i class="fa-solid fa-plus"></i> Create Poll</button>
 </form>

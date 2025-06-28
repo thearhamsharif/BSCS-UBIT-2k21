@@ -1,10 +1,26 @@
 <h1 class="mb-4">All Polls</h1>
-<a href="/create" class="btn btn-primary mb-3">Create New Poll</a>
+<a href="/create" class="btn btn-primary mb-4 btn-lg"><i class="fa-solid fa-plus"></i> Create New Poll</a>
 <ul class="list-group">
   {{#each polls}}
-    <li class="list-group-item d-flex align-items-center justify-content-between" style="gap: 10px;">
-      <span>{{this.question}}</span>
-      <a href="/polls/{{this._id}}" class="btn btn-sm btn-outline-primary">View</a>
+    <li class="list-group-item d-flex align-items-center justify-content-between gap-2">
+      <div>
+        <strong>{{this.question}}</strong>
+        <br />
+
+        {{#ifCond this.status "Active"}}
+          <span class="badge bg-success me-2">
+            <i class="fa-solid fa-check-circle"></i> Active
+          </span>
+        {{else}}
+          <span class="badge bg-secondary me-2">
+            <i class="fa-solid fa-lock"></i> Closed
+          </span>
+        {{/ifCond}}
+      </div>
+
+      <a href="/polls/{{this._id}}" class="btn btn-sm btn-outline-primary" aria-label="View poll: {{this.question}}">
+        <i class="fa-solid fa-eye"></i> View
+      </a>
     </li>
   {{/each}}
 </ul>
