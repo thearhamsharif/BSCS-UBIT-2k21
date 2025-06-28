@@ -78,18 +78,18 @@ router.get('/polls/:id', async (req, res) => {
 
     const hasVoted = poll.votedIPs.includes(ip);
     const isCreator = poll.creatorIP === ip;
-    const votes = poll.votes;
+    const votes = poll.votes || {};
 
-    const voteCounts = Array.from(votes.values()).map(v => Number(v));
+    const voteCounts = Object.values(votes).map(v => Number(v) || 0);
     const maxVotes = voteCounts.length ? Math.max(...voteCounts) : 0;
-    const winners = Array.from(votes.entries())
-      .filter(([_, count]) => count === maxVotes)
+    const winners = Object.entries(votes)
+      .filter(([_, count]) => Number(count) === maxVotes)
       .map(([option]) => option);
     const isTie = winners.length > 1;
 
     const optionVotes = poll.options.map(opt => ({
       name: opt,
-      votes: votes.get(opt) || 0,
+      votes: Number(votes[opt]) || 0,
       isWinner: winners.includes(opt)
     }));
 
@@ -111,8 +111,8 @@ router.post('/polls/:id/vote', async (req, res) => {
 
     if (!poll.options.includes(option)) return res.send('Invalid option.');
 
-    const currentVoteCount = poll.votes.get(option) || 0;
-    poll.votes.set(option, currentVoteCount + 1);
+    poll.votes[option] = (poll.votes[option] || 0) + 1;
+    poll.markModified('votes');
     poll.votedIPs.push(ip);
 
     await poll.save();

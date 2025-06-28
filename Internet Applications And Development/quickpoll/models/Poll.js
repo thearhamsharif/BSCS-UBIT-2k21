@@ -10,7 +10,7 @@ const pollSchema = new mongoose.Schema({
     required: true,
   },
   votes: {
-    type: Map,
+    type: Object,
     of: Number,
     default: {},
   },
