@@ -79,15 +79,6 @@ x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
 y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
 
 # Plot input data
-ax = plt.subplot(1, len(classifiers) + 1, 1)
-ax.set_title("Input data")
-ax.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=cm_bright, edgecolors="k")
-ax.scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap=cm_bright, alpha=0.6, edgecolors="k")
-ax.set_xlim(x_min, x_max)
-ax.set_ylim(y_min, y_max)
-ax.set_xticks(())
-ax.set_yticks(())
-
 for i, (name, clf) in enumerate(zip(names, classifiers), start=2):
     ax = plt.subplot(1, len(classifiers) + 1, i)
     clf_pipeline = make_pipeline(StandardScaler(), clf)

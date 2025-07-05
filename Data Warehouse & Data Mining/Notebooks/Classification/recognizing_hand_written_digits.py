@@ -6,10 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
 from sklearn.metrics import classification_report, accuracy_score
-from sklearn.inspection import DecisionBoundaryDisplay
-from matplotlib.colors import ListedColormap
 
 # 2. Load Digits Dataset
 digits = datasets.load_digits()
