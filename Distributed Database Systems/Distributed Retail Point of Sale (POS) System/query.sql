@@ -129,21 +129,6 @@ CREATE TABLE IF NOT EXISTS central.Customers (
   email VARCHAR(150)
 );
 
--- Orders
-CREATE TABLE IF NOT EXISTS central.Orders (
-  id SERIAL PRIMARY KEY,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  created_by INT,
-  updated_by INT,
-  global_order_id UUID NOT NULL REFERENCES central.OrderMapping(global_order_id),
-  store_id INT NOT NULL REFERENCES central.Stores(id),
-  customer_id INT REFERENCES central.Customers(id),
-  order_date TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  total_amount NUMERIC(12,2) NOT NULL,
-  status VARCHAR(50) DEFAULT 'Pending'
-);
-
 -- OrderMapping
 CREATE TABLE IF NOT EXISTS central.OrderMapping (
   id SERIAL PRIMARY KEY,
@@ -156,6 +141,25 @@ CREATE TABLE IF NOT EXISTS central.OrderMapping (
   store_order_id INT NOT NULL,
   customer_id INT REFERENCES central.Customers(id),
   order_time TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Orders
+CREATE TABLE IF NOT EXISTS central.Orders (
+  id SERIAL PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  created_by INT,
+  updated_by INT,
+  global_order_id UUID NOT NULL REFERENCES central.OrderMapping(global_order_id),
+  store_id INT NOT NULL REFERENCES central.Stores(id),
+  customer_id INT REFERENCES central.Customers(id),
+  order_date TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  total_amount NUMERIC(12,2) NOT NULL,
+  status VARCHAR(50) DEFAULT 'Pending',
+  tracking_code VARCHAR(50) UNIQUE DEFAULT (
+    'TRK-' || to_char(now(), 'YYYYMMDD') || '-' ||
+    substr(md5(gen_random_uuid()::text), 1, 6)
+  )
 );
 
 -- Order Items
@@ -192,7 +196,51 @@ CREATE TABLE IF NOT EXISTS central.AuditLogs (
   table_name TEXT NOT NULL,
   action TEXT NOT NULL,
   payload JSONB
-);
+);  
+
+-- Cities
+CREATE INDEX IF NOT EXISTS idx_cities_name ON central.Cities(name);
+
+-- Stores
+CREATE INDEX IF NOT EXISTS idx_stores_city_id ON central.Stores(city_id);
+CREATE INDEX IF NOT EXISTS idx_stores_code ON central.Stores(code);
+
+-- Categories
+CREATE INDEX IF NOT EXISTS idx_categories_name ON central.Categories(name);
+
+-- Users
+CREATE INDEX IF NOT EXISTS idx_users_role_id ON central.Users(role_id);
+CREATE INDEX IF NOT EXISTS idx_users_store_id ON central.Users(store_id);
+
+-- Products
+CREATE INDEX IF NOT EXISTS idx_products_category_id ON central.Products(category_id);
+CREATE INDEX IF NOT EXISTS idx_products_sku ON central.Products(sku);
+
+-- Inventory
+CREATE INDEX IF NOT EXISTS idx_inventory_product_store ON central.Inventory(product_id, store_id);
+
+-- Customers
+CREATE INDEX IF NOT EXISTS idx_customers_city_id ON central.Customers(city_id);
+CREATE INDEX IF NOT EXISTS idx_customers_phone ON central.Customers(phone);
+
+-- OrderMapping
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ordermapping_store_order ON central.OrderMapping(store_id, store_order_id);
+
+-- Orders
+CREATE INDEX IF NOT EXISTS idx_orders_store_id ON central.Orders(store_id);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON central.Orders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_global_order_id ON central.Orders(global_order_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_tracking_code ON central.Orders(tracking_code);
+
+-- Order Items
+CREATE INDEX IF NOT EXISTS idx_orderitems_order_id ON central.OrderItems(order_id);
+CREATE INDEX IF NOT EXISTS idx_orderitems_product_id ON central.OrderItems(product_id);
+
+-- Payments
+CREATE INDEX IF NOT EXISTS idx_payments_global_order_id ON central.Payments(global_order_id);
+
+-- AuditLogs
+CREATE INDEX IF NOT EXISTS idx_auditlogs_table_action ON central.AuditLogs(table_name, action);
 
 -- ========================
 -- End of script
