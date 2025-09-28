@@ -1,6 +1,7 @@
 -- File: query.sql
 -- DB name: pos_dds
-DROP SCHEMA IF EXISTS public CASCADE;
+CREATE DATABASE pos_dds;
+\c pos_dds;
 
 -- ========================
 -- 0. Extensions
