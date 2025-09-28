@@ -1,5 +1,6 @@
 -- File: query.sql
 -- DB name: pos_dds
+DROP SCHEMA public CASCADE;
 
 -- ========================
 -- 0. Extensions
