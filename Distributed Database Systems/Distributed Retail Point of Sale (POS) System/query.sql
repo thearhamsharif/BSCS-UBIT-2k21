@@ -1,6 +1,6 @@
 -- File: query.sql
 -- DB name: pos_dds
-DROP SCHEMA public CASCADE;
+DROP SCHEMA IF EXISTS public CASCADE;
 
 -- ========================
 -- 0. Extensions
@@ -130,8 +130,8 @@ CREATE TABLE IF NOT EXISTS central.Customers (
   email VARCHAR(150)
 );
 
--- OrderMapping
-CREATE TABLE IF NOT EXISTS central.OrderMapping (
+-- Order_Mapping
+CREATE TABLE IF NOT EXISTS central.Order_Mapping (
   id SERIAL PRIMARY KEY,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS central.Orders (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   created_by INT,
   updated_by INT,
-  global_order_id UUID NOT NULL REFERENCES central.OrderMapping(global_order_id),
+  global_order_id UUID NOT NULL REFERENCES central.Order_Mapping(global_order_id),
   store_id INT NOT NULL REFERENCES central.Stores(id),
   customer_id INT REFERENCES central.Customers(id),
   order_date TIMESTAMP WITH TIME ZONE DEFAULT now(),
@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS central.Orders (
 );
 
 -- Order Items
-CREATE TABLE IF NOT EXISTS central.OrderItems (
+CREATE TABLE IF NOT EXISTS central.Order_Items (
   id SERIAL PRIMARY KEY,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
@@ -183,14 +183,14 @@ CREATE TABLE IF NOT EXISTS central.Payments (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   created_by INT,
   updated_by INT,
-  global_order_id UUID NOT NULL REFERENCES central.OrderMapping(global_order_id),
+  global_order_id UUID NOT NULL REFERENCES central.Order_Mapping(global_order_id),
   amount NUMERIC(12,2) NOT NULL,
   method VARCHAR(50) CHECK (method IN ('Cash','Card','Online')),
   status VARCHAR(50) DEFAULT 'Paid'
 );
 
--- AuditLogs
-CREATE TABLE IF NOT EXISTS central.AuditLogs (
+-- Audit_Logs
+CREATE TABLE IF NOT EXISTS central.Audit_Logs (
   id SERIAL PRIMARY KEY,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   created_by INT,
@@ -224,8 +224,8 @@ CREATE INDEX IF NOT EXISTS idx_inventory_product_store ON central.Inventory(prod
 CREATE INDEX IF NOT EXISTS idx_customers_city_id ON central.Customers(city_id);
 CREATE INDEX IF NOT EXISTS idx_customers_phone ON central.Customers(phone);
 
--- OrderMapping
-CREATE UNIQUE INDEX IF NOT EXISTS idx_ordermapping_store_order ON central.OrderMapping(store_id, store_order_id);
+-- Order_Mapping
+CREATE UNIQUE INDEX IF NOT EXISTS idx_order_mapping_store_order ON central.Order_Mapping(store_id, store_order_id);
 
 -- Orders
 CREATE INDEX IF NOT EXISTS idx_orders_store_id ON central.Orders(store_id);
@@ -234,15 +234,17 @@ CREATE INDEX IF NOT EXISTS idx_orders_global_order_id ON central.Orders(global_o
 CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_tracking_code ON central.Orders(tracking_code);
 
 -- Order Items
-CREATE INDEX IF NOT EXISTS idx_orderitems_order_id ON central.OrderItems(order_id);
-CREATE INDEX IF NOT EXISTS idx_orderitems_product_id ON central.OrderItems(product_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON central.Order_Items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON central.Order_Items(product_id);
 
 -- Payments
 CREATE INDEX IF NOT EXISTS idx_payments_global_order_id ON central.Payments(global_order_id);
 
--- AuditLogs
-CREATE INDEX IF NOT EXISTS idx_auditlogs_table_action ON central.AuditLogs(table_name, action);
+-- Audit_Logs
+CREATE INDEX IF NOT EXISTS idx_audit_logs_table_action ON central.Audit_Logs(table_name, action);
 
+-------------------------------------
+DROP SCHEMA IF EXISTS public CASCADE;
 -- ========================
 -- End of script
 -- ========================
