@@ -9,9 +9,9 @@ CREATE DATABASE pos_dds;
 -- ==================================================
 -- 0. Extensions
 -- ==================================================
-CREATE EXTENSION IF NOT EXISTS dblink;
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+CREATE EXTENSION IF NOT EXISTS dblink; -- for connection
+CREATE EXTENSION IF NOT EXISTS pgcrypto; -- for unique_id or security
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements; -- for monitoring
 
 -- ==================================================
 -- 1. Schemas
@@ -204,233 +204,214 @@ CREATE TABLE IF NOT EXISTS Audit_Logs (
 -- ==================================================
 -- 3. NODES TABLES (Karachi & Lahore)
 -- ==================================================
--- Customers
 CREATE TABLE karachi.Customers AS SELECT * FROM central.Customers WHERE city_id=(SELECT id FROM central.Cities WHERE name='Karachi');
 CREATE TABLE lahore.Customers AS SELECT * FROM central.Customers WHERE city_id=(SELECT id FROM central.Cities WHERE name='Lahore');
 
--- Orders
-CREATE TABLE karachi.Orders AS
-SELECT o.* FROM central.Orders o JOIN central.Stores s ON o.store_id=s.id WHERE s.city_id=(SELECT id FROM central.Cities WHERE name='Karachi');
-CREATE TABLE lahore.Orders AS
-SELECT o.* FROM central.Orders o JOIN central.Stores s ON o.store_id=s.id WHERE s.city_id=(SELECT id FROM central.Cities WHERE name='Lahore');
+CREATE TABLE karachi.Orders AS SELECT o.* FROM central.Orders o JOIN central.Stores s ON o.store_id=s.id WHERE s.city_id=(SELECT id FROM central.Cities WHERE name='Karachi');
+CREATE TABLE lahore.Orders AS SELECT o.* FROM central.Orders o JOIN central.Stores s ON o.store_id=s.id WHERE s.city_id=(SELECT id FROM central.Cities WHERE name='Lahore');
 
--- Order_Items
-CREATE TABLE karachi.Order_Items AS
-SELECT oi.* FROM central.Order_Items oi JOIN central.Orders o ON oi.order_id=o.id JOIN central.Stores s ON o.store_id=s.id WHERE s.city_id=(SELECT id FROM central.Cities WHERE name='Karachi');
-CREATE TABLE lahore.Order_Items AS
-SELECT oi.* FROM central.Order_Items oi JOIN central.Orders o ON oi.order_id=o.id JOIN central.Stores s ON o.store_id=s.id WHERE s.city_id=(SELECT id FROM central.Cities WHERE name='Lahore');
+CREATE TABLE karachi.Order_Items AS SELECT oi.* FROM central.Order_Items oi JOIN central.Orders o ON oi.order_id=o.id JOIN central.Stores s ON o.store_id=s.id WHERE s.city_id=(SELECT id FROM central.Cities WHERE name='Karachi');
+CREATE TABLE lahore.Order_Items AS SELECT oi.* FROM central.Order_Items oi JOIN central.Orders o ON oi.order_id=o.id JOIN central.Stores s ON o.store_id=s.id WHERE s.city_id=(SELECT id FROM central.Cities WHERE name='Lahore');
 
--- Payments
-CREATE TABLE karachi.Payments AS
-SELECT p.* FROM central.Payments p JOIN central.Order_Mapping om ON p.global_order_id=om.global_order_id JOIN central.Stores s ON om.store_id=s.id WHERE s.city_id=(SELECT id FROM central.Cities WHERE name='Karachi');
-CREATE TABLE lahore.Payments AS
-SELECT p.* FROM central.Payments p JOIN central.Order_Mapping om ON p.global_order_id=om.global_order_id JOIN central.Stores s ON om.store_id=s.id WHERE s.city_id=(SELECT id FROM central.Cities WHERE name='Lahore');
+CREATE TABLE karachi.Payments AS SELECT p.* FROM central.Payments p JOIN central.Order_Mapping om ON p.global_order_id=om.global_order_id JOIN central.Stores s ON om.store_id=s.id WHERE s.city_id=(SELECT id FROM central.Cities WHERE name='Karachi');
+CREATE TABLE lahore.Payments AS SELECT p.* FROM central.Payments p JOIN central.Order_Mapping om ON p.global_order_id=om.global_order_id JOIN central.Stores s ON om.store_id=s.id WHERE s.city_id=(SELECT id FROM central.Cities WHERE name='Lahore');
 
--- Inventory
 CREATE TABLE karachi.Inventory AS SELECT i.* FROM central.Inventory i JOIN central.Stores s ON i.store_id=s.id WHERE s.city_id=(SELECT id FROM central.Cities WHERE name='Karachi');
 CREATE TABLE lahore.Inventory AS SELECT i.* FROM central.Inventory i JOIN central.Stores s ON i.store_id=s.id WHERE s.city_id=(SELECT id FROM central.Cities WHERE name='Lahore');
 
 -- ==================================================
--- 4. FULL REPLICATION TRIGGERS (Karachi & Lahore)
+-- 4. FULL REPLICATION TRIGGERS (ALL TABLES)
 -- ==================================================
--- Example: replicate Stores for Karachi
-CREATE OR REPLACE FUNCTION replicate_store_karachi()
-RETURNS TRIGGER AS $$
+-- Template for triggers: Stores, Products, Categories, Roles, Suppliers, Orders, Order_Items, Payments, Inventory
+-- Triggers for central.Stores
+CREATE OR REPLACE FUNCTION replicate_store(city TEXT) RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.city_id = (SELECT id FROM central.Cities WHERE name='Karachi') THEN
-    INSERT INTO karachi.Stores VALUES (NEW.*)
-    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, updated_at=EXCLUDED.updated_at;
+  IF NEW.city_id=(SELECT id FROM central.Cities WHERE name=city) THEN
+    IF city='Karachi' THEN
+      INSERT INTO karachi.Stores VALUES (NEW.*)
+      ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, updated_at=EXCLUDED.updated_at;
+    ELSE
+      INSERT INTO lahore.Stores VALUES (NEW.*)
+      ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, updated_at=EXCLUDED.updated_at;
+    END IF;
   END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_store_insert_karachi
-AFTER INSERT OR UPDATE ON central.Stores
-FOR EACH ROW EXECUTE FUNCTION replicate_store_karachi();
+CREATE TRIGGER trg_store_insert AFTER INSERT OR UPDATE ON central.Stores
+FOR EACH ROW EXECUTE FUNCTION replicate_store(NEW.city_id);
 
--- replicate Stores for Lahore
-CREATE OR REPLACE FUNCTION replicate_store_lahore()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.city_id = (SELECT id FROM central.Cities WHERE name='Lahore') THEN
-    INSERT INTO lahore.Stores VALUES (NEW.*)
-    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, updated_at=EXCLUDED.updated_at;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_store_insert_lahore
-AFTER INSERT OR UPDATE ON central.Stores
-FOR EACH ROW EXECUTE FUNCTION replicate_store_lahore();
-
--- replicate Products for Karachi
-CREATE OR REPLACE FUNCTION replicate_product_karachi()
-RETURNS TRIGGER AS $$
+-- Replication triggers for Products
+CREATE OR REPLACE FUNCTION replicate_product() RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO karachi.Products VALUES (NEW.*)
   ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, price=EXCLUDED.price, category_id=EXCLUDED.category_id, updated_at=EXCLUDED.updated_at;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_product_insert_karachi
-AFTER INSERT OR UPDATE ON central.Products
-FOR EACH ROW EXECUTE FUNCTION replicate_product_karachi();
-
--- replicate Products for Lahore
-CREATE OR REPLACE FUNCTION replicate_product_lahore()
-RETURNS TRIGGER AS $$
-BEGIN
+  
   INSERT INTO lahore.Products VALUES (NEW.*)
   ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, price=EXCLUDED.price, category_id=EXCLUDED.category_id, updated_at=EXCLUDED.updated_at;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_product_insert_lahore
-AFTER INSERT OR UPDATE ON central.Products
-FOR EACH ROW EXECUTE FUNCTION replicate_product_lahore();
+CREATE TRIGGER trg_product_insert AFTER INSERT OR UPDATE ON central.Products
+FOR EACH ROW EXECUTE FUNCTION replicate_product();
 
--- replicate Categories for Karachi
-CREATE OR REPLACE FUNCTION replicate_category_karachi()
-RETURNS TRIGGER AS $$
+-- Replication triggers for Categories
+CREATE OR REPLACE FUNCTION replicate_category() RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO karachi.Categories VALUES (NEW.*)
   ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_category_insert_karachi
-AFTER INSERT OR UPDATE ON central.Categories
-FOR EACH ROW EXECUTE FUNCTION replicate_category_karachi();
-
--- replicate Categories for Lahore
-CREATE OR REPLACE FUNCTION replicate_category_lahore()
-RETURNS TRIGGER AS $$
-BEGIN
+  
   INSERT INTO lahore.Categories VALUES (NEW.*)
   ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_category_insert_lahore
-AFTER INSERT OR UPDATE ON central.Categories
-FOR EACH ROW EXECUTE FUNCTION replicate_category_lahore();
+CREATE TRIGGER trg_category_insert AFTER INSERT OR UPDATE ON central.Categories
+FOR EACH ROW EXECUTE FUNCTION replicate_category();
 
--- replicate Roles for Karachi
-CREATE OR REPLACE FUNCTION replicate_role_karachi()
-RETURNS TRIGGER AS $$
+-- Replication triggers for Roles
+CREATE OR REPLACE FUNCTION replicate_role() RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO karachi.Roles VALUES (NEW.*)
   ON CONFLICT (id) DO UPDATE SET role_name=EXCLUDED.role_name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_role_insert_karachi
-AFTER INSERT OR UPDATE ON central.Roles
-FOR EACH ROW EXECUTE FUNCTION replicate_role_karachi();
-
--- replicate Roles for Lahore
-CREATE OR REPLACE FUNCTION replicate_role_lahore()
-RETURNS TRIGGER AS $$
-BEGIN
   INSERT INTO lahore.Roles VALUES (NEW.*)
   ON CONFLICT (id) DO UPDATE SET role_name=EXCLUDED.role_name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_role_insert_lahore
-AFTER INSERT OR UPDATE ON central.Roles
-FOR EACH ROW EXECUTE FUNCTION replicate_role_lahore();
+CREATE TRIGGER trg_role_insert AFTER INSERT OR UPDATE ON central.Roles
+FOR EACH ROW EXECUTE FUNCTION replicate_role();
 
--- replicate Suppliers for Karachi
-CREATE OR REPLACE FUNCTION replicate_supplier_karachi()
-RETURNS TRIGGER AS $$
+-- Replication triggers for Suppliers
+CREATE OR REPLACE FUNCTION replicate_supplier() RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO karachi.Suppliers VALUES (NEW.*)
   ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, contact_info=EXCLUDED.contact_info, updated_at=EXCLUDED.updated_at;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_supplier_insert_karachi
-AFTER INSERT OR UPDATE ON central.Suppliers
-FOR EACH ROW EXECUTE FUNCTION replicate_supplier_karachi();
-
--- replicate Suppliers for Lahore
-CREATE OR REPLACE FUNCTION replicate_supplier_lahore()
-RETURNS TRIGGER AS $$
-BEGIN
   INSERT INTO lahore.Suppliers VALUES (NEW.*)
   ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, contact_info=EXCLUDED.contact_info, updated_at=EXCLUDED.updated_at;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_supplier_insert_lahore
-AFTER INSERT OR UPDATE ON central.Suppliers
-FOR EACH ROW EXECUTE FUNCTION replicate_supplier_lahore();
+CREATE TRIGGER trg_supplier_insert AFTER INSERT OR UPDATE ON central.Suppliers
+FOR EACH ROW EXECUTE FUNCTION replicate_supplier();
+
+-- Replication triggers for Orders
+CREATE OR REPLACE FUNCTION replicate_orders() RETURNS TRIGGER AS $$
+BEGIN
+  IF (SELECT city_id FROM central.Stores WHERE id=NEW.store_id)=(SELECT id FROM central.Cities WHERE name='Karachi') THEN
+    INSERT INTO karachi.Orders VALUES (NEW.*)
+    ON CONFLICT (id) DO UPDATE SET updated_at=EXCLUDED.updated_at, total_amount=EXCLUDED.total_amount;
+  ELSE
+    INSERT INTO lahore.Orders VALUES (NEW.*)
+    ON CONFLICT (id) DO UPDATE SET updated_at=EXCLUDED.updated_at, total_amount=EXCLUDED.total_amount;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_orders_insert AFTER INSERT OR UPDATE ON central.Orders
+FOR EACH ROW EXECUTE FUNCTION replicate_orders();
+
+-- Replication triggers for Order_Items
+CREATE OR REPLACE FUNCTION replicate_order_items() RETURNS TRIGGER AS $$
+BEGIN
+  IF (SELECT city_id FROM central.Stores WHERE id=(SELECT store_id FROM central.Orders WHERE id=NEW.order_id))=(SELECT id FROM central.Cities WHERE name='Karachi') THEN
+    INSERT INTO karachi.Order_Items VALUES (NEW.*)
+    ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, price=EXCLUDED.price, updated_at=EXCLUDED.updated_at;
+  ELSE
+    INSERT INTO lahore.Order_Items VALUES (NEW.*)
+    ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, price=EXCLUDED.price, updated_at=EXCLUDED.updated_at;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_order_items_insert AFTER INSERT OR UPDATE ON central.Order_Items
+FOR EACH ROW EXECUTE FUNCTION replicate_order_items();
+
+-- Replication triggers for Payments
+CREATE OR REPLACE FUNCTION replicate_payments() RETURNS TRIGGER AS $$
+BEGIN
+  IF (SELECT city_id FROM central.Stores WHERE id=(SELECT store_id FROM central.Order_Mapping WHERE global_order_id=NEW.global_order_id))=(SELECT id FROM central.Cities WHERE name='Karachi') THEN
+    INSERT INTO karachi.Payments VALUES (NEW.*)
+    ON CONFLICT (id) DO UPDATE SET amount=EXCLUDED.amount, status=EXCLUDED.status, updated_at=EXCLUDED.updated_at;
+  ELSE
+    INSERT INTO lahore.Payments VALUES (NEW.*)
+    ON CONFLICT (id) DO UPDATE SET amount=EXCLUDED.amount, status=EXCLUDED.status, updated_at=EXCLUDED.updated_at;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_payments_insert AFTER INSERT OR UPDATE ON central.Payments
+FOR EACH ROW EXECUTE FUNCTION replicate_payments();
+
+-- Replication triggers for Inventory
+CREATE OR REPLACE FUNCTION replicate_inventory() RETURNS TRIGGER AS $$
+BEGIN
+  IF (SELECT city_id FROM central.Stores WHERE id=NEW.store_id)=(SELECT id FROM central.Cities WHERE name='Karachi') THEN
+    INSERT INTO karachi.Inventory VALUES (NEW.*)
+    ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, purchase_price=EXCLUDED.purchase_price, updated_at=EXCLUDED.updated_at;
+  ELSE
+    INSERT INTO lahore.Inventory VALUES (NEW.*)
+    ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, purchase_price=EXCLUDED.purchase_price, updated_at=EXCLUDED.updated_at;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_inventory_insert AFTER INSERT OR UPDATE ON central.Inventory
+FOR EACH ROW EXECUTE FUNCTION replicate_inventory();
 
 -- ==================================================
--- 5. INDEXES & PERFORMANCE
+-- 5. INDEXES (Central + Nodes)
 -- ==================================================
--- Central indexes
+-- Central Indexes
 CREATE INDEX IF NOT EXISTS idx_cities_name ON central.Cities(name);
 CREATE INDEX IF NOT EXISTS idx_stores_city_id ON central.Stores(city_id);
-CREATE INDEX IF NOT EXISTS idx_stores_code ON central.Stores(code);
-CREATE INDEX IF NOT EXISTS idx_categories_name ON central.Categories(name);
-CREATE INDEX IF NOT EXISTS idx_users_role_id ON central.Users(role_id);
-CREATE INDEX IF NOT EXISTS idx_users_store_id ON central.Users(store_id);
-CREATE INDEX IF NOT EXISTS idx_products_category_id ON central.Products(category_id);
 CREATE INDEX IF NOT EXISTS idx_products_sku ON central.Products(sku);
-CREATE INDEX IF NOT EXISTS idx_inventory_product_store ON central.Inventory(product_id,store_id);
-CREATE INDEX IF NOT EXISTS idx_customers_city_id ON central.Customers(city_id);
-CREATE INDEX IF NOT EXISTS idx_customers_phone ON central.Customers(phone);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_order_mapping_store_order ON central.Order_Mapping(store_id,store_order_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_product_store ON central.Inventory(product_id, store_id);
 CREATE INDEX IF NOT EXISTS idx_orders_store_id ON central.Orders(store_id);
-CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON central.Orders(customer_id);
-CREATE INDEX IF NOT EXISTS idx_orders_global_order_id ON central.Orders(global_order_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_tracking_code ON central.Orders(tracking_code);
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON central.Order_Items(order_id);
-CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON central.Order_Items(product_id);
-CREATE INDEX IF NOT EXISTS idx_payments_global_order_id ON central.Payments(global_order_id);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_table_action ON central.Audit_Logs(table_name,action);
 
--- Karachi indexes
-CREATE INDEX idx_karachi_orders_store_id ON karachi.Orders(store_id);
-CREATE INDEX idx_karachi_order_items_order_id ON karachi.Order_Items(order_id);
-CREATE INDEX idx_karachi_inventory_product_store ON karachi.Inventory(product_id,store_id);
+-- Karachi Indexes
+CREATE INDEX IF NOT EXISTS idx_karachi_orders_store_id ON karachi.Orders(store_id);
+CREATE INDEX IF NOT EXISTS idx_karachi_order_items_order_id ON karachi.Order_Items(order_id);
+CREATE INDEX IF NOT EXISTS idx_karachi_inventory_product_store ON karachi.Inventory(product_id, store_id);
 
--- Lahore indexes
-CREATE INDEX idx_lahore_orders_store_id ON lahore.Orders(store_id);
-CREATE INDEX idx_lahore_order_items_order_id ON lahore.Order_Items(order_id);
-CREATE INDEX idx_lahore_inventory_product_store ON lahore.Inventory(product_id,store_id);
+-- Lahore Indexes
+CREATE INDEX IF NOT EXISTS idx_lahore_orders_store_id ON lahore.Orders(store_id);
+CREATE INDEX IF NOT EXISTS idx_lahore_order_items_order_id ON lahore.Order_Items(order_id);
+CREATE INDEX IF NOT EXISTS idx_lahore_inventory_product_store ON lahore.Inventory(product_id, store_id);
 
 -- ==================================================
--- 6. BACKUP & RESTORE SNIPPETS
--- ==================================================
--- pg_dump -n central pos_dds > central_backup.sql
--- pg_dump -n karachi pos_dds > karachi_backup.sql
--- pg_dump -n lahore pos_dds > lahore_backup.sql
--- psql pos_dds < central_backup.sql
--- psql pos_dds < karachi_backup.sql
--- psql pos_dds < lahore_backup.sql
-
--- ==================================================
--- 7. SECURITY: Roles & Permissions
+-- 6. SECURITY: Roles & Permissions
 -- ==================================================
 CREATE ROLE karachi_user LOGIN PASSWORD 'pass123';
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA karachi TO karachi_user;
+
 CREATE ROLE lahore_user LOGIN PASSWORD 'pass123';
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA lahore TO lahore_user;
+
 CREATE ROLE central_readonly LOGIN PASSWORD 'pass123';
 GRANT SELECT ON ALL TABLES IN SCHEMA central TO central_readonly;
+
+-- ==================================================
+-- 7. BACKUP / RESTORE
+-- ==================================================
+-- Backup city-specific
+-- pg_dump -n karachi pos_dds > karachi_backup.sql
+-- pg_dump -n lahore pos_dds > lahore_backup.sql
+-- pg_dump -n central pos_dds > central_backup.sql
+-- Restore
+-- psql pos_dds < karachi_backup.sql
 
 -- ==================================================
 -- 8. SAMPLE DISTRIBUTED QUERIES
@@ -457,5 +438,5 @@ LEFT JOIN lahore_sales l ON p.id=l.product_id
 ORDER BY total_sales DESC;
 
 -- ==================================================
--- END OF FILE
+-- END OF SCRIPT
 -- ==================================================
