@@ -228,10 +228,10 @@ CREATE OR REPLACE FUNCTION replicate_store() RETURNS TRIGGER AS $$
 BEGIN
   IF NEW.city_id = (SELECT id FROM central.Cities WHERE name='Karachi') THEN
     INSERT INTO karachi.Stores VALUES (NEW.*)
-    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, updated_at=EXCLUDED.updated_at;
+    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
   ELSIF NEW.city_id = (SELECT id FROM central.Cities WHERE name='Lahore') THEN
     INSERT INTO lahore.Stores VALUES (NEW.*)
-    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, updated_at=EXCLUDED.updated_at;
+    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
   END IF;
   RETURN NEW;
 END;
@@ -245,10 +245,10 @@ FOR EACH ROW EXECUTE FUNCTION replicate_store();
 CREATE OR REPLACE FUNCTION replicate_product() RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO karachi.Products VALUES (NEW.*)
-  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, price=EXCLUDED.price, category_id=EXCLUDED.category_id, updated_at=EXCLUDED.updated_at;
+  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, price=EXCLUDED.price, category_id=EXCLUDED.category_id, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
   
   INSERT INTO lahore.Products VALUES (NEW.*)
-  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, price=EXCLUDED.price, category_id=EXCLUDED.category_id, updated_at=EXCLUDED.updated_at;
+  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, price=EXCLUDED.price, category_id=EXCLUDED.category_id, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
   
   RETURN NEW;
 END;
@@ -262,10 +262,10 @@ FOR EACH ROW EXECUTE FUNCTION replicate_product();
 CREATE OR REPLACE FUNCTION replicate_category() RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO karachi.Categories VALUES (NEW.*)
-  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
+  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
 
   INSERT INTO lahore.Categories VALUES (NEW.*)
-  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
+  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
 
   RETURN NEW;
 END;
@@ -279,10 +279,10 @@ FOR EACH ROW EXECUTE FUNCTION replicate_category();
 CREATE OR REPLACE FUNCTION replicate_role() RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO karachi.Roles VALUES (NEW.*)
-  ON CONFLICT (id) DO UPDATE SET role_name=EXCLUDED.role_name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
+  ON CONFLICT (id) DO UPDATE SET role_name=EXCLUDED.role_name, description=EXCLUDED.description, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
 
   INSERT INTO lahore.Roles VALUES (NEW.*)
-  ON CONFLICT (id) DO UPDATE SET role_name=EXCLUDED.role_name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
+  ON CONFLICT (id) DO UPDATE SET role_name=EXCLUDED.role_name, description=EXCLUDED.description, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
 
   RETURN NEW;
 END;
@@ -296,10 +296,10 @@ FOR EACH ROW EXECUTE FUNCTION replicate_role();
 CREATE OR REPLACE FUNCTION replicate_supplier() RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO karachi.Suppliers VALUES (NEW.*)
-  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, contact_info=EXCLUDED.contact_info, updated_at=EXCLUDED.updated_at;
+  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, contact_info=EXCLUDED.contact_info, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
 
   INSERT INTO lahore.Suppliers VALUES (NEW.*)
-  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, contact_info=EXCLUDED.contact_info, updated_at=EXCLUDED.updated_at;
+  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, contact_info=EXCLUDED.contact_info, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
 
   RETURN NEW;
 END;
@@ -317,10 +317,10 @@ BEGIN
 
   IF store_city_id = (SELECT id FROM central.Cities WHERE name='Karachi') THEN
     INSERT INTO karachi.Orders VALUES (NEW.*)
-    ON CONFLICT (id) DO UPDATE SET updated_at=EXCLUDED.updated_at, total_amount=EXCLUDED.total_amount;
+    ON CONFLICT (id) DO UPDATE SET updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at, total_amount=EXCLUDED.total_amount;
   ELSIF store_city_id = (SELECT id FROM central.Cities WHERE name='Lahore') THEN
     INSERT INTO lahore.Orders VALUES (NEW.*)
-    ON CONFLICT (id) DO UPDATE SET updated_at=EXCLUDED.updated_at, total_amount=EXCLUDED.total_amount;
+    ON CONFLICT (id) DO UPDATE SET updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at, total_amount=EXCLUDED.total_amount;
   END IF;
 
   RETURN NEW;
@@ -341,10 +341,10 @@ BEGIN
 
   IF store_city_id = (SELECT id FROM central.Cities WHERE name='Karachi') THEN
     INSERT INTO karachi.Order_Items VALUES (NEW.*)
-    ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, price=EXCLUDED.price, updated_at=EXCLUDED.updated_at;
+    ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, price=EXCLUDED.price, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
   ELSIF store_city_id = (SELECT id FROM central.Cities WHERE name='Lahore') THEN
     INSERT INTO lahore.Order_Items VALUES (NEW.*)
-    ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, price=EXCLUDED.price, updated_at=EXCLUDED.updated_at;
+    ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, price=EXCLUDED.price, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
   END IF;
 
   RETURN NEW;
@@ -365,10 +365,10 @@ BEGIN
 
   IF store_city_id = (SELECT id FROM central.Cities WHERE name='Karachi') THEN
     INSERT INTO karachi.Payments VALUES (NEW.*)
-    ON CONFLICT (id) DO UPDATE SET amount=EXCLUDED.amount, status=EXCLUDED.status, updated_at=EXCLUDED.updated_at;
+    ON CONFLICT (id) DO UPDATE SET amount=EXCLUDED.amount, status=EXCLUDED.status, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
   ELSIF store_city_id = (SELECT id FROM central.Cities WHERE name='Lahore') THEN
     INSERT INTO lahore.Payments VALUES (NEW.*)
-    ON CONFLICT (id) DO UPDATE SET amount=EXCLUDED.amount, status=EXCLUDED.status, updated_at=EXCLUDED.updated_at;
+    ON CONFLICT (id) DO UPDATE SET amount=EXCLUDED.amount, status=EXCLUDED.status, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
   END IF;
 
   RETURN NEW;
@@ -387,10 +387,10 @@ BEGIN
 
   IF store_city_id = (SELECT id FROM central.Cities WHERE name='Karachi') THEN
     INSERT INTO karachi.Inventory VALUES (NEW.*)
-    ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, purchase_price=EXCLUDED.purchase_price, updated_at=EXCLUDED.updated_at;
+    ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, purchase_price=EXCLUDED.purchase_price, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
   ELSIF store_city_id = (SELECT id FROM central.Cities WHERE name='Lahore') THEN
     INSERT INTO lahore.Inventory VALUES (NEW.*)
-    ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, purchase_price=EXCLUDED.purchase_price, updated_at=EXCLUDED.updated_at;
+    ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, purchase_price=EXCLUDED.purchase_price, updated_by=EXCLUDED.updated_by, updated_at=EXCLUDED.updated_at;
   END IF;
 
   RETURN NEW;
@@ -480,6 +480,9 @@ FROM central.Products p
 LEFT JOIN karachi_sales k ON p.id=k.product_id
 LEFT JOIN lahore_sales l ON p.id=l.product_id
 ORDER BY total_sales DESC;
+
+-- Performance Monitoring
+SELECT * FROM pg_stat_statements LIMIT 10;
 
 -- Drop public schema
 DROP SCHEMA IF EXISTS public CASCADE;
