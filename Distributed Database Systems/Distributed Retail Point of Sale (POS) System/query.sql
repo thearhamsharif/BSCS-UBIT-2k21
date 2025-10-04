@@ -233,7 +233,149 @@ CREATE TABLE lahore.Inventory AS SELECT i.* FROM central.Inventory i JOIN centra
 -- ==================================================
 -- 4. FULL REPLICATION TRIGGERS (Karachi & Lahore)
 -- ==================================================
--- [Triggers code inserted here; copy the triggers block I sent above]
+-- Example: replicate Stores for Karachi
+CREATE OR REPLACE FUNCTION replicate_store_karachi()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.city_id = (SELECT id FROM central.Cities WHERE name='Karachi') THEN
+    INSERT INTO karachi.Stores VALUES (NEW.*)
+    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, updated_at=EXCLUDED.updated_at;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_store_insert_karachi
+AFTER INSERT OR UPDATE ON central.Stores
+FOR EACH ROW EXECUTE FUNCTION replicate_store_karachi();
+
+-- replicate Stores for Lahore
+CREATE OR REPLACE FUNCTION replicate_store_lahore()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.city_id = (SELECT id FROM central.Cities WHERE name='Lahore') THEN
+    INSERT INTO lahore.Stores VALUES (NEW.*)
+    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, updated_at=EXCLUDED.updated_at;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_store_insert_lahore
+AFTER INSERT OR UPDATE ON central.Stores
+FOR EACH ROW EXECUTE FUNCTION replicate_store_lahore();
+
+-- replicate Products for Karachi
+CREATE OR REPLACE FUNCTION replicate_product_karachi()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO karachi.Products VALUES (NEW.*)
+  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, price=EXCLUDED.price, category_id=EXCLUDED.category_id, updated_at=EXCLUDED.updated_at;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_product_insert_karachi
+AFTER INSERT OR UPDATE ON central.Products
+FOR EACH ROW EXECUTE FUNCTION replicate_product_karachi();
+
+-- replicate Products for Lahore
+CREATE OR REPLACE FUNCTION replicate_product_lahore()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO lahore.Products VALUES (NEW.*)
+  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, price=EXCLUDED.price, category_id=EXCLUDED.category_id, updated_at=EXCLUDED.updated_at;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_product_insert_lahore
+AFTER INSERT OR UPDATE ON central.Products
+FOR EACH ROW EXECUTE FUNCTION replicate_product_lahore();
+
+-- replicate Categories for Karachi
+CREATE OR REPLACE FUNCTION replicate_category_karachi()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO karachi.Categories VALUES (NEW.*)
+  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_category_insert_karachi
+AFTER INSERT OR UPDATE ON central.Categories
+FOR EACH ROW EXECUTE FUNCTION replicate_category_karachi();
+
+-- replicate Categories for Lahore
+CREATE OR REPLACE FUNCTION replicate_category_lahore()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO lahore.Categories VALUES (NEW.*)
+  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_category_insert_lahore
+AFTER INSERT OR UPDATE ON central.Categories
+FOR EACH ROW EXECUTE FUNCTION replicate_category_lahore();
+
+-- replicate Roles for Karachi
+CREATE OR REPLACE FUNCTION replicate_role_karachi()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO karachi.Roles VALUES (NEW.*)
+  ON CONFLICT (id) DO UPDATE SET role_name=EXCLUDED.role_name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_role_insert_karachi
+AFTER INSERT OR UPDATE ON central.Roles
+FOR EACH ROW EXECUTE FUNCTION replicate_role_karachi();
+
+-- replicate Roles for Lahore
+CREATE OR REPLACE FUNCTION replicate_role_lahore()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO lahore.Roles VALUES (NEW.*)
+  ON CONFLICT (id) DO UPDATE SET role_name=EXCLUDED.role_name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_role_insert_lahore
+AFTER INSERT OR UPDATE ON central.Roles
+FOR EACH ROW EXECUTE FUNCTION replicate_role_lahore();
+
+-- replicate Suppliers for Karachi
+CREATE OR REPLACE FUNCTION replicate_supplier_karachi()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO karachi.Suppliers VALUES (NEW.*)
+  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, contact_info=EXCLUDED.contact_info, updated_at=EXCLUDED.updated_at;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_supplier_insert_karachi
+AFTER INSERT OR UPDATE ON central.Suppliers
+FOR EACH ROW EXECUTE FUNCTION replicate_supplier_karachi();
+
+-- replicate Suppliers for Lahore
+CREATE OR REPLACE FUNCTION replicate_supplier_lahore()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO lahore.Suppliers VALUES (NEW.*)
+  ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, contact_info=EXCLUDED.contact_info, updated_at=EXCLUDED.updated_at;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_supplier_insert_lahore
+AFTER INSERT OR UPDATE ON central.Suppliers
+FOR EACH ROW EXECUTE FUNCTION replicate_supplier_lahore();
 
 -- ==================================================
 -- 5. INDEXES & PERFORMANCE
