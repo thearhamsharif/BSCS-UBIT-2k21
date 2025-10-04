@@ -370,6 +370,18 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_inventory_insert AFTER INSERT OR UPDATE ON central.Inventory
 FOR EACH ROW EXECUTE FUNCTION replicate_inventory();
 
+-- Replication triggers for Audit_Logs
+CREATE OR REPLACE FUNCTION replicate_audit() RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO central.Audit_Logs(table_name, action, payload, created_by)
+  VALUES (TG_TABLE_NAME, TG_OP, row_to_json(NEW), NEW.created_by);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER audit_users AFTER INSERT OR UPDATE OR DELETE ON central.Users
+FOR EACH ROW EXECUTE FUNCTION replicate_audit();
+
 -- ==================================================
 -- 5. INDEXES (Central + Nodes)
 -- ==================================================
