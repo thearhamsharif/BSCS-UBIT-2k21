@@ -222,27 +222,26 @@ CREATE TABLE lahore.Inventory AS SELECT i.* FROM central.Inventory i JOIN centra
 -- ==================================================
 -- 4. FULL REPLICATION TRIGGERS (ALL TABLES)
 -- ==================================================
--- Template for triggers: Stores, Products, Categories, Roles, Suppliers, Orders, Order_Items, Payments, Inventory
--- Triggers for central.Stores
-CREATE OR REPLACE FUNCTION replicate_store(city TEXT) RETURNS TRIGGER AS $$
+
+-- Stores
+CREATE OR REPLACE FUNCTION replicate_store() RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.city_id=(SELECT id FROM central.Cities WHERE name=city) THEN
-    IF city='Karachi' THEN
-      INSERT INTO karachi.Stores VALUES (NEW.*)
-      ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, updated_at=EXCLUDED.updated_at;
-    ELSE
-      INSERT INTO lahore.Stores VALUES (NEW.*)
-      ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, updated_at=EXCLUDED.updated_at;
-    END IF;
+  IF NEW.city_id = (SELECT id FROM central.Cities WHERE name='Karachi') THEN
+    INSERT INTO karachi.Stores VALUES (NEW.*)
+    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, updated_at=EXCLUDED.updated_at;
+  ELSIF NEW.city_id = (SELECT id FROM central.Cities WHERE name='Lahore') THEN
+    INSERT INTO lahore.Stores VALUES (NEW.*)
+    ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, updated_at=EXCLUDED.updated_at;
   END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_store_insert AFTER INSERT OR UPDATE ON central.Stores
-FOR EACH ROW EXECUTE FUNCTION replicate_store(NEW.city_id);
+CREATE TRIGGER trg_store_insert
+AFTER INSERT OR UPDATE ON central.Stores
+FOR EACH ROW EXECUTE FUNCTION replicate_store();
 
--- Replication triggers for Products
+-- Products
 CREATE OR REPLACE FUNCTION replicate_product() RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO karachi.Products VALUES (NEW.*)
@@ -250,29 +249,33 @@ BEGIN
   
   INSERT INTO lahore.Products VALUES (NEW.*)
   ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, price=EXCLUDED.price, category_id=EXCLUDED.category_id, updated_at=EXCLUDED.updated_at;
+  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_product_insert AFTER INSERT OR UPDATE ON central.Products
+CREATE TRIGGER trg_product_insert
+AFTER INSERT OR UPDATE ON central.Products
 FOR EACH ROW EXECUTE FUNCTION replicate_product();
 
--- Replication triggers for Categories
+-- Categories
 CREATE OR REPLACE FUNCTION replicate_category() RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO karachi.Categories VALUES (NEW.*)
   ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
-  
+
   INSERT INTO lahore.Categories VALUES (NEW.*)
   ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_category_insert AFTER INSERT OR UPDATE ON central.Categories
+CREATE TRIGGER trg_category_insert
+AFTER INSERT OR UPDATE ON central.Categories
 FOR EACH ROW EXECUTE FUNCTION replicate_category();
 
--- Replication triggers for Roles
+-- Roles
 CREATE OR REPLACE FUNCTION replicate_role() RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO karachi.Roles VALUES (NEW.*)
@@ -280,14 +283,16 @@ BEGIN
 
   INSERT INTO lahore.Roles VALUES (NEW.*)
   ON CONFLICT (id) DO UPDATE SET role_name=EXCLUDED.role_name, description=EXCLUDED.description, updated_at=EXCLUDED.updated_at;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_role_insert AFTER INSERT OR UPDATE ON central.Roles
+CREATE TRIGGER trg_role_insert
+AFTER INSERT OR UPDATE ON central.Roles
 FOR EACH ROW EXECUTE FUNCTION replicate_role();
 
--- Replication triggers for Suppliers
+-- Suppliers
 CREATE OR REPLACE FUNCTION replicate_supplier() RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO karachi.Suppliers VALUES (NEW.*)
@@ -295,82 +300,108 @@ BEGIN
 
   INSERT INTO lahore.Suppliers VALUES (NEW.*)
   ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, contact_info=EXCLUDED.contact_info, updated_at=EXCLUDED.updated_at;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_supplier_insert AFTER INSERT OR UPDATE ON central.Suppliers
+CREATE TRIGGER trg_supplier_insert
+AFTER INSERT OR UPDATE ON central.Suppliers
 FOR EACH ROW EXECUTE FUNCTION replicate_supplier();
 
--- Replication triggers for Orders
+-- Orders
 CREATE OR REPLACE FUNCTION replicate_orders() RETURNS TRIGGER AS $$
+DECLARE store_city_id INT;
 BEGIN
-  IF (SELECT city_id FROM central.Stores WHERE id=NEW.store_id)=(SELECT id FROM central.Cities WHERE name='Karachi') THEN
+  SELECT city_id INTO store_city_id FROM central.Stores WHERE id = NEW.store_id;
+
+  IF store_city_id = (SELECT id FROM central.Cities WHERE name='Karachi') THEN
     INSERT INTO karachi.Orders VALUES (NEW.*)
     ON CONFLICT (id) DO UPDATE SET updated_at=EXCLUDED.updated_at, total_amount=EXCLUDED.total_amount;
-  ELSE
+  ELSIF store_city_id = (SELECT id FROM central.Cities WHERE name='Lahore') THEN
     INSERT INTO lahore.Orders VALUES (NEW.*)
     ON CONFLICT (id) DO UPDATE SET updated_at=EXCLUDED.updated_at, total_amount=EXCLUDED.total_amount;
   END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_orders_insert AFTER INSERT OR UPDATE ON central.Orders
+CREATE TRIGGER trg_orders_insert
+AFTER INSERT OR UPDATE ON central.Orders
 FOR EACH ROW EXECUTE FUNCTION replicate_orders();
 
--- Replication triggers for Order_Items
+-- Order_Items
 CREATE OR REPLACE FUNCTION replicate_order_items() RETURNS TRIGGER AS $$
+DECLARE store_city_id INT;
 BEGIN
-  IF (SELECT city_id FROM central.Stores WHERE id=(SELECT store_id FROM central.Orders WHERE id=NEW.order_id))=(SELECT id FROM central.Cities WHERE name='Karachi') THEN
+  SELECT city_id INTO store_city_id 
+  FROM central.Stores 
+  WHERE id = (SELECT store_id FROM central.Orders WHERE id=NEW.order_id);
+
+  IF store_city_id = (SELECT id FROM central.Cities WHERE name='Karachi') THEN
     INSERT INTO karachi.Order_Items VALUES (NEW.*)
     ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, price=EXCLUDED.price, updated_at=EXCLUDED.updated_at;
-  ELSE
+  ELSIF store_city_id = (SELECT id FROM central.Cities WHERE name='Lahore') THEN
     INSERT INTO lahore.Order_Items VALUES (NEW.*)
     ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, price=EXCLUDED.price, updated_at=EXCLUDED.updated_at;
   END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_order_items_insert AFTER INSERT OR UPDATE ON central.Order_Items
+CREATE TRIGGER trg_order_items_insert
+AFTER INSERT OR UPDATE ON central.Order_Items
 FOR EACH ROW EXECUTE FUNCTION replicate_order_items();
 
--- Replication triggers for Payments
+-- Payments
 CREATE OR REPLACE FUNCTION replicate_payments() RETURNS TRIGGER AS $$
+DECLARE store_city_id INT;
 BEGIN
-  IF (SELECT city_id FROM central.Stores WHERE id=(SELECT store_id FROM central.Order_Mapping WHERE global_order_id=NEW.global_order_id))=(SELECT id FROM central.Cities WHERE name='Karachi') THEN
+  SELECT city_id INTO store_city_id 
+  FROM central.Stores 
+  WHERE id = (SELECT store_id FROM central.Order_Mapping WHERE global_order_id=NEW.global_order_id);
+
+  IF store_city_id = (SELECT id FROM central.Cities WHERE name='Karachi') THEN
     INSERT INTO karachi.Payments VALUES (NEW.*)
     ON CONFLICT (id) DO UPDATE SET amount=EXCLUDED.amount, status=EXCLUDED.status, updated_at=EXCLUDED.updated_at;
-  ELSE
+  ELSIF store_city_id = (SELECT id FROM central.Cities WHERE name='Lahore') THEN
     INSERT INTO lahore.Payments VALUES (NEW.*)
     ON CONFLICT (id) DO UPDATE SET amount=EXCLUDED.amount, status=EXCLUDED.status, updated_at=EXCLUDED.updated_at;
   END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_payments_insert AFTER INSERT OR UPDATE ON central.Payments
+CREATE TRIGGER trg_payments_insert
+AFTER INSERT OR UPDATE ON central.Payments
 FOR EACH ROW EXECUTE FUNCTION replicate_payments();
 
--- Replication triggers for Inventory
+-- Inventory
 CREATE OR REPLACE FUNCTION replicate_inventory() RETURNS TRIGGER AS $$
+DECLARE store_city_id INT;
 BEGIN
-  IF (SELECT city_id FROM central.Stores WHERE id=NEW.store_id)=(SELECT id FROM central.Cities WHERE name='Karachi') THEN
+  SELECT city_id INTO store_city_id FROM central.Stores WHERE id = NEW.store_id;
+
+  IF store_city_id = (SELECT id FROM central.Cities WHERE name='Karachi') THEN
     INSERT INTO karachi.Inventory VALUES (NEW.*)
     ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, purchase_price=EXCLUDED.purchase_price, updated_at=EXCLUDED.updated_at;
-  ELSE
+  ELSIF store_city_id = (SELECT id FROM central.Cities WHERE name='Lahore') THEN
     INSERT INTO lahore.Inventory VALUES (NEW.*)
     ON CONFLICT (id) DO UPDATE SET quantity=EXCLUDED.quantity, purchase_price=EXCLUDED.purchase_price, updated_at=EXCLUDED.updated_at;
   END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_inventory_insert AFTER INSERT OR UPDATE ON central.Inventory
+CREATE TRIGGER trg_inventory_insert
+AFTER INSERT OR UPDATE ON central.Inventory
 FOR EACH ROW EXECUTE FUNCTION replicate_inventory();
 
--- Replication triggers for Audit_Logs
+-- Audit Logs (generic for Users table)
 CREATE OR REPLACE FUNCTION replicate_audit() RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO central.Audit_Logs(table_name, action, payload, created_by)
@@ -379,7 +410,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER audit_users AFTER INSERT OR UPDATE OR DELETE ON central.Users
+CREATE TRIGGER audit_users
+AFTER INSERT OR UPDATE OR DELETE ON central.Users
 FOR EACH ROW EXECUTE FUNCTION replicate_audit();
 
 -- ==================================================
@@ -419,11 +451,11 @@ GRANT SELECT ON ALL TABLES IN SCHEMA central TO central_readonly;
 -- 7. BACKUP / RESTORE
 -- ==================================================
 -- Backup city-specific
--- pg_dump -n karachi pos_dds > karachi_backup.sql
--- pg_dump -n lahore pos_dds > lahore_backup.sql
--- pg_dump -n central pos_dds > central_backup.sql
+pg_dump -n karachi pos_dds > karachi_backup.sql
+pg_dump -n lahore pos_dds > lahore_backup.sql
+pg_dump -n central pos_dds > central_backup.sql
 -- Restore
--- psql pos_dds < karachi_backup.sql
+psql pos_dds < karachi_backup.sql
 
 -- ==================================================
 -- 8. SAMPLE DISTRIBUTED QUERIES
@@ -449,6 +481,8 @@ LEFT JOIN karachi_sales k ON p.id=k.product_id
 LEFT JOIN lahore_sales l ON p.id=l.product_id
 ORDER BY total_sales DESC;
 
+-- Drop public schema completely (all objects in it will be lost)
+DROP SCHEMA IF EXISTS public CASCADE;
 -- ==================================================
 -- END OF SCRIPT
 -- ==================================================
