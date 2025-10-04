@@ -401,7 +401,7 @@ CREATE TRIGGER trg_inventory_insert
 AFTER INSERT OR UPDATE ON central.Inventory
 FOR EACH ROW EXECUTE FUNCTION replicate_inventory();
 
--- Audit Logs (generic for Users table)
+-- Audit Logs
 CREATE OR REPLACE FUNCTION replicate_audit() RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO central.Audit_Logs(table_name, action, payload, created_by)
@@ -481,7 +481,7 @@ LEFT JOIN karachi_sales k ON p.id=k.product_id
 LEFT JOIN lahore_sales l ON p.id=l.product_id
 ORDER BY total_sales DESC;
 
--- Drop public schema completely (all objects in it will be lost)
+-- Drop public schema
 DROP SCHEMA IF EXISTS public CASCADE;
 -- ==================================================
 -- END OF SCRIPT
