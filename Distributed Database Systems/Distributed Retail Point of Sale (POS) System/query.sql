@@ -235,7 +235,7 @@ BEGIN
             updated_at = EXCLUDED.updated_at,
             updated_by = EXCLUDED.updated_by;
    ELSIF NEW.city_id = (SELECT id FROM central.Cities WHERE name='Lahore') THEN
-    INSERT INTO lahore.Stores VALUES (NEW.*)
+    INSERT INTO lahore.Customers VALUES (NEW.*)
     ON CONFLICT (id) DO UPDATE 
     SET name = EXCLUDED.name,
         phone = EXCLUDED.phone,
