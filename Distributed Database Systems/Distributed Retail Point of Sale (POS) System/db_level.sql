@@ -86,7 +86,7 @@ CREATE TABLE Order_Mapping (
 );
 
 -- Replication Logging
-CREATE TABLE IF NOT EXISTS Replication_Log (
+CREATE TABLE Replication_Log (
     id SERIAL PRIMARY KEY,
     table_name VARCHAR(50),
     record_id INT,
@@ -240,7 +240,8 @@ BEGIN
             'dbname='||db_name||' user=dblink_user password=dblink123',
             'INSERT INTO Customers (id,name,phone,email,city_id,created_at,updated_at) VALUES ('||
             NEW.id||','''||NEW.name||''','''||COALESCE(NEW.phone,'')||''','''||COALESCE(NEW.email,'')||''','||
-            NEW.city_id||','''||NEW.created_at||''','''||NEW.updated_at||''')'
+            NEW.city_id||','''||NEW.created_at||''','''||NEW.updated_at||''') '||
+            'ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, phone=EXCLUDED.phone, email=EXCLUDED.email, city_id=EXCLUDED.city_id, updated_at=EXCLUDED.updated_at'
         );
         INSERT INTO Replication_Log(table_name, record_id, target_db, status, message)
         VALUES ('Customers', NEW.id, db_name, 'Success', 'Replicated successfully');
@@ -272,7 +273,8 @@ BEGIN
         PERFORM dblink_exec(
             'dbname='||db_name||' user=dblink_user password=dblink123',
             'INSERT INTO Stores (id,name,code,city_id,created_at,updated_at) VALUES ('||
-            NEW.id||','''||NEW.name||''','''||NEW.code||''','||NEW.city_id||','''||NEW.created_at||''','''||NEW.updated_at||''')'
+            NEW.id||','''||NEW.name||''','''||NEW.code||''','||NEW.city_id||','''||NEW.created_at||''','''||NEW.updated_at||''') '||
+            'ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, city_id=EXCLUDED.city_id, updated_at=EXCLUDED.updated_at'
         );
         INSERT INTO Replication_Log(table_name, record_id, target_db, status, message)
         VALUES ('Stores', NEW.id, db_name, 'Success', 'Replicated successfully');
@@ -354,6 +356,7 @@ $$ LANGUAGE plpgsql;
 -- ==========================
 -- 5. Distributed Query (Sales total)
 -- ==========================
+EXPLAIN ANALYZE
 WITH karachi_sales AS (
     SELECT SUM(quantity*price) AS total
     FROM dblink('dbname=karachi_db user=dblink_user password=dblink123',
@@ -368,7 +371,7 @@ SELECT COALESCE(k.total,0)+COALESCE(l.total,0) AS total_sales
 FROM karachi_sales k, lahore_sales l;
 
 -- ==========================
--- 6. Backup / Recovery Examples
+-- 6. Backup / Recovery
 -- ==========================
 -- Backup central DB
 -- \! pg_dump -U central_admin -F c -b -v -f '/path/to/backup/pos_central.backup' pos_central
@@ -383,6 +386,47 @@ FROM karachi_sales k, lahore_sales l;
 -- Restore store DBs
 -- \! pg_restore -U central_admin -d karachi_db -v '/path/to/backup/karachi_db.backup'
 -- \! pg_restore -U central_admin -d lahore_db -v '/path/to/backup/lahore_db.backup'
+
+-- ==========================
+-- 7. Fault Tolerance in Runtime (Replication)
+-- ==========================
+
+CREATE OR REPLACE FUNCTION retry_failed_replications() RETURNS void AS $$
+DECLARE
+    rec RECORD;
+BEGIN
+    FOR rec IN SELECT * FROM Replication_Log WHERE status='Failed'
+    LOOP
+        BEGIN
+            IF rec.table_name='Customers' THEN
+                PERFORM dblink_exec(
+                    'dbname='||rec.target_db||' user=dblink_user password=dblink123',
+                    'INSERT INTO Customers (id,name,phone,email,city_id,created_at,updated_at) '||
+                    'SELECT id,name,phone,email,city_id,created_at,updated_at FROM Customers WHERE id='||rec.record_id||' '||
+                    'ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, phone=EXCLUDED.phone, email=EXCLUDED.email, city_id=EXCLUDED.city_id, updated_at=EXCLUDED.updated_at'
+                );
+            ELSIF rec.table_name='Stores' THEN
+                PERFORM dblink_exec(
+                    'dbname='||rec.target_db||' user=dblink_user password=dblink123',
+                    'INSERT INTO Stores (id,name,code,city_id,created_at,updated_at) '||
+                    'SELECT id,name,code,city_id,created_at,updated_at FROM Stores WHERE id='||rec.record_id||' '||
+                    'ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, city_id=EXCLUDED.city_id, updated_at=EXCLUDED.updated_at'
+                );
+            END IF;
+
+            -- Mark success
+            UPDATE Replication_Log
+            SET status='Success', message='Retried successfully', log_time=now()
+            WHERE id=rec.id;
+
+        EXCEPTION WHEN OTHERS THEN
+            UPDATE Replication_Log
+            SET message=SQLERRM, log_time=now()
+            WHERE id=rec.id;
+        END;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
 
 -- ==========================
 -- END SCRIPT
