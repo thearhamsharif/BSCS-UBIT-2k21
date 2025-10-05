@@ -385,14 +385,5 @@ FROM karachi_sales k, lahore_sales l;
 -- \! pg_restore -U central_admin -d lahore_db -v '/path/to/backup/lahore_db.backup'
 
 -- ==========================
--- 7. Results / Testing placeholders
+-- END SCRIPT
 -- ==========================
--- SELECT * FROM Customers;
--- SELECT * FROM Stores;
--- SELECT * FROM Order_Mapping;
--- SELECT * FROM Replication_Log;
--- Use EXPLAIN ANALYZE on distributed query for optimization screenshots
--- EX: EXPLAIN ANALYZE
--- WITH karachi_sales AS (...)
--- SELECT COALESCE(k.total,0)+COALESCE(l.total,0) AS total_sales
--- FROM karachi_sales k, lahore_sales l;
