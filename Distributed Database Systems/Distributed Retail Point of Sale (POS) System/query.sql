@@ -223,6 +223,34 @@ CREATE TABLE lahore.Inventory AS SELECT i.* FROM central.Inventory i JOIN centra
 -- 4. FULL REPLICATION TRIGGERS (ALL TABLES)
 -- ==================================================
 
+-- Customers
+CREATE OR REPLACE FUNCTION replicate_customers() RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.city_id = (SELECT id FROM central.Cities WHERE name='Karachi') THEN
+        INSERT INTO karachi.Customers VALUES (NEW.*)
+        ON CONFLICT (id) DO UPDATE 
+        SET name = EXCLUDED.name,
+            phone = EXCLUDED.phone,
+            email = EXCLUDED.email,
+            updated_at = EXCLUDED.updated_at,
+            updated_by = EXCLUDED.updated_by;
+   ELSIF NEW.city_id = (SELECT id FROM central.Cities WHERE name='Lahore') THEN
+    INSERT INTO lahore.Stores VALUES (NEW.*)
+    ON CONFLICT (id) DO UPDATE 
+    SET name = EXCLUDED.name,
+        phone = EXCLUDED.phone,
+        email = EXCLUDED.email,
+        updated_at = EXCLUDED.updated_at,
+        updated_by = EXCLUDED.updated_by;
+  END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_customers_insert
+AFTER INSERT OR UPDATE ON central.Customers
+FOR EACH ROW EXECUTE FUNCTION replicate_customers();
+
 -- Stores
 CREATE OR REPLACE FUNCTION replicate_store() RETURNS TRIGGER AS $$
 BEGIN
