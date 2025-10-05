@@ -10,13 +10,17 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- --------------------------
 -- Security / Roles
 -- --------------------------
--- Central admin role
+-- Full admin
 CREATE ROLE central_admin LOGIN PASSWORD 'admin123';
 GRANT ALL PRIVILEGES ON DATABASE pos_central TO central_admin;
 
--- Dblink user with restricted access
+-- Restricted dblink user
 CREATE ROLE dblink_user LOGIN PASSWORD 'dblink123';
 GRANT CONNECT ON DATABASE pos_central TO dblink_user;
+
+-- Allow schema/table access for dblink_user
+GRANT USAGE ON SCHEMA public TO dblink_user;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO dblink_user;
 
 -- --------------------------
 -- Tables
