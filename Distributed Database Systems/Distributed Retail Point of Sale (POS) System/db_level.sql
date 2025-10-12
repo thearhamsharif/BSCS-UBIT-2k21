@@ -16,7 +16,7 @@ GRANT ALL PRIVILEGES ON DATABASE pos_central TO central_admin;
 
 -- Restricted dblink user
 CREATE ROLE dblink_user LOGIN PASSWORD 'dblink123';
-GRANT CONNECT ON DATABASE pos_central TO dblink_user;
+GRANT CONNECT ON DATABASE pos_central, karachi_db, lahore_db TO dblink_user;
 
 -- Allow schema/table access for dblink_user
 GRANT USAGE ON SCHEMA public TO dblink_user;
@@ -427,7 +427,6 @@ BEGIN
     END LOOP;
 END;
 $$ LANGUAGE plpgsql;
-
 
 -- ==========================
 -- 8. Examples of Usage
