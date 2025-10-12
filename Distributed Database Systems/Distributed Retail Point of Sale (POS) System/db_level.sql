@@ -237,7 +237,7 @@ BEGIN
 
     BEGIN
         PERFORM dblink_exec(
-            'dbname='||db_name||' user=dblink_user password=dblink123',
+            'host=localhost port=5433 dbname='||db_name||' user=dblink_user password=dblink123',
             'INSERT INTO Customers (id,name,phone,email,city_id,created_at,updated_at) VALUES ('||
             NEW.id||','''||NEW.name||''','''||COALESCE(NEW.phone,'')||''','''||COALESCE(NEW.email,'')||''','||
             NEW.city_id||','''||NEW.created_at||''','''||NEW.updated_at||''') '||
@@ -254,7 +254,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_customers
+CREATE OR REPLACE TRIGGER trg_customers
 AFTER INSERT OR UPDATE ON Customers
 FOR EACH ROW EXECUTE FUNCTION replicate_customers();
 
@@ -271,7 +271,7 @@ BEGIN
 
     BEGIN
         PERFORM dblink_exec(
-            'dbname='||db_name||' user=dblink_user password=dblink123',
+            'host=localhost port=5433 dbname='||db_name||' user=dblink_user password=dblink123',
             'INSERT INTO Stores (id,name,code,city_id,created_at,updated_at) VALUES ('||
             NEW.id||','''||NEW.name||''','''||NEW.code||''','||NEW.city_id||','''||NEW.created_at||''','''||NEW.updated_at||''') '||
             'ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, city_id=EXCLUDED.city_id, updated_at=EXCLUDED.updated_at'
@@ -287,7 +287,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_stores
+CREATE OR REPLACE TRIGGER trg_stores
 AFTER INSERT OR UPDATE ON Stores
 FOR EACH ROW EXECUTE FUNCTION replicate_stores();
 
@@ -359,12 +359,12 @@ $$ LANGUAGE plpgsql;
 EXPLAIN ANALYZE
 WITH karachi_sales AS (
     SELECT SUM(quantity*price) AS total
-    FROM dblink('dbname=karachi_db user=dblink_user password=dblink123',
+    FROM dblink('host=localhost port=5433 dbname=karachi_db user=dblink_user password=dblink123',
                 'SELECT quantity, price FROM Order_Items') AS t(quantity INT, price NUMERIC)
 ),
 lahore_sales AS (
     SELECT SUM(quantity*price) AS total
-    FROM dblink('dbname=lahore_db user=dblink_user password=dblink123',
+    FROM dblink('host=localhost port=5433 dbname=lahore_db user=dblink_user password=dblink123',
                 'SELECT quantity, price FROM Order_Items') AS t(quantity INT, price NUMERIC)
 )
 SELECT COALESCE(k.total,0)+COALESCE(l.total,0) AS total_sales
@@ -394,22 +394,39 @@ FROM karachi_sales k, lahore_sales l;
 CREATE OR REPLACE FUNCTION retry_failed_replications() RETURNS void AS $$
 DECLARE
     rec RECORD;
+    _id INT;
+    _name TEXT;
+    _phone TEXT;
+    _email TEXT;
+    _city_id INT;
+    _created_at TIMESTAMPTZ;
+    _updated_at TIMESTAMPTZ;
+    _code TEXT;
 BEGIN
     FOR rec IN SELECT * FROM Replication_Log WHERE status='Failed'
     LOOP
         BEGIN
             IF rec.table_name='Customers' THEN
+                SELECT id, name, phone, email, city_id, created_at, updated_at
+                INTO _id, _name, _phone, _email, _city_id, _created_at, _updated_at
+                FROM Customers WHERE id = rec.record_id;
+
                 PERFORM dblink_exec(
-                    'dbname='||rec.target_db||' user=dblink_user password=dblink123',
-                    'INSERT INTO Customers (id,name,phone,email,city_id,created_at,updated_at) '||
-                    'SELECT id,name,phone,email,city_id,created_at,updated_at FROM Customers WHERE id='||rec.record_id||' '||
+                    'host=localhost port=5433 dbname='||rec.target_db||' user=dblink_user password=dblink123',
+                    'INSERT INTO Customers (id,name,phone,email,city_id,created_at,updated_at) VALUES ('||
+                    _id||','''||_name||''','''||COALESCE(_phone,'')||''','''||COALESCE(_email,'')||''','||
+                    _city_id||','''||_created_at||''','''||_updated_at||''') '||
                     'ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, phone=EXCLUDED.phone, email=EXCLUDED.email, city_id=EXCLUDED.city_id, updated_at=EXCLUDED.updated_at'
                 );
             ELSIF rec.table_name='Stores' THEN
+                SELECT id, name, code, city_id, created_at, updated_at
+                INTO _id, _name, _code, _city_id, _created_at, _updated_at
+                FROM Stores WHERE id = rec.record_id;
+
                 PERFORM dblink_exec(
-                    'dbname='||rec.target_db||' user=dblink_user password=dblink123',
-                    'INSERT INTO Stores (id,name,code,city_id,created_at,updated_at) '||
-                    'SELECT id,name,code,city_id,created_at,updated_at FROM Stores WHERE id='||rec.record_id||' '||
+                    'host=localhost port=5433 dbname='||rec.target_db||' user=dblink_user password=dblink123',
+                    'INSERT INTO Stores (id,name,code,city_id,created_at,updated_at) VALUES ('||
+                    _id||','''||_name||''','''||_code||''','||_city_id||','''||_created_at||''','''||_updated_at||''') '||
                     'ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, code=EXCLUDED.code, city_id=EXCLUDED.city_id, updated_at=EXCLUDED.updated_at'
                 );
             END IF;
