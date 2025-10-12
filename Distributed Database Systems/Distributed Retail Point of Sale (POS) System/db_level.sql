@@ -22,6 +22,9 @@ GRANT CONNECT ON DATABASE pos_central, karachi_db, lahore_db TO dblink_user;
 GRANT USAGE ON SCHEMA public TO dblink_user;
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO dblink_user;
 
+--  Grant sequence privileges
+GRANT USAGE, SELECT, UPDATE ON SEQUENCE order_mapping_id_seq TO dblink_user;
+
 -- --------------------------
 -- Tables
 -- --------------------------
@@ -133,7 +136,9 @@ CREATE TABLE Orders (
     customer_id INT NOT NULL,
     order_date TIMESTAMPTZ DEFAULT now(),
     total_amount NUMERIC(12,2) NOT NULL,
-    status VARCHAR(50) DEFAULT 'Pending'
+    status VARCHAR(50) DEFAULT 'Pending',
+    store_order_id INT NOT NULL,
+    UNIQUE(store_id, store_order_id)
 );
 
 CREATE TABLE Order_Items (
@@ -190,7 +195,9 @@ CREATE TABLE Orders (
     customer_id INT NOT NULL,
     order_date TIMESTAMPTZ DEFAULT now(),
     total_amount NUMERIC(12,2) NOT NULL,
-    status VARCHAR(50) DEFAULT 'Pending'
+    status VARCHAR(50) DEFAULT 'Pending',
+    store_order_id INT NOT NULL,
+    UNIQUE(store_id, store_order_id)
 );
 
 CREATE TABLE Order_Items (
@@ -298,56 +305,59 @@ CREATE OR REPLACE FUNCTION ProcessOrder(
     p_store_id INT,
     p_customer_id INT,
     p_items JSONB,
-    p_payment_method VARCHAR,
-    p_created_by INT
+    p_payment_method VARCHAR
 ) RETURNS UUID AS $$
 DECLARE
     v_global_order_id UUID := gen_random_uuid();
     v_total_amount NUMERIC := 0;
     v_item JSONB;
     v_order_id INT;
+    v_store_order_id INT;
 BEGIN
-    -- Total calculation
-    FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
+    -- Calculate total amount
+    FOR v_item IN SELECT value FROM jsonb_array_elements(p_items)
     LOOP
         v_total_amount := v_total_amount + (v_item->>'quantity')::NUMERIC * (v_item->>'price')::NUMERIC;
     END LOOP;
 
-    -- Insert Order Mapping
-    INSERT INTO Order_Mapping(store_id, store_order_id, customer_id, global_order_id, order_time)
-    VALUES (
-        p_store_id,
-        (SELECT COALESCE(MAX(store_order_id),0)+1 FROM Order_Mapping WHERE store_id=p_store_id),
-        p_customer_id,
-        v_global_order_id,
-        now()
-    );
+    -- Get next store_order_id (local to this store)
+    SELECT COALESCE(MAX(store_order_id),0)+1 INTO v_store_order_id FROM Orders WHERE store_id = p_store_id;
 
-    -- Insert Orders
-    INSERT INTO Orders(global_order_id, store_id, customer_id, total_amount, status, order_date)
-    VALUES (v_global_order_id, p_store_id, p_customer_id, v_total_amount, 'Pending', now());
+    -- Insert into Orders table (local)
+    INSERT INTO Orders(global_order_id, store_id, customer_id, total_amount, status, order_date, store_order_id)
+    VALUES (v_global_order_id, p_store_id, p_customer_id, v_total_amount, 'Pending', now(), v_store_order_id);
 
-    SELECT id INTO v_order_id FROM Orders WHERE global_order_id=v_global_order_id;
+    SELECT id INTO v_order_id FROM Orders WHERE global_order_id = v_global_order_id;
 
-    -- Order Items + Inventory update with locks
-    FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
+    -- Insert order items and update inventory
+    FOR v_item IN SELECT value FROM jsonb_array_elements(p_items)
     LOOP
-        PERFORM * FROM Inventory
+        -- Lock inventory row
+        PERFORM 1 FROM Inventory
         WHERE product_id = (v_item->>'product_id')::INT AND store_id = p_store_id
         FOR UPDATE;
 
+        -- Insert order item
         INSERT INTO Order_Items(order_id, product_id, quantity, price)
         VALUES (v_order_id, (v_item->>'product_id')::INT, (v_item->>'quantity')::INT, (v_item->>'price')::NUMERIC);
 
+        -- Update inventory
         UPDATE Inventory
         SET quantity = quantity - (v_item->>'quantity')::INT,
             updated_at = now()
         WHERE product_id = (v_item->>'product_id')::INT AND store_id = p_store_id;
     END LOOP;
 
-    -- Payment
+    -- Insert payment
     INSERT INTO Payments(global_order_id, amount, method, status)
     VALUES (v_global_order_id, v_total_amount, p_payment_method, 'Paid');
+
+    -- Insert mapping into central database using dblink
+    PERFORM dblink_exec(
+        'host=localhost port=5433 dbname=pos_central user=dblink_user password=dblink123',
+        'INSERT INTO Order_Mapping (store_id, store_order_id, customer_id, global_order_id, order_time) VALUES ('||
+        p_store_id||','||v_store_order_id||','||p_customer_id||','''||v_global_order_id||''',now())'
+    );
 
     RETURN v_global_order_id;
 END;
@@ -474,6 +484,19 @@ INSERT INTO Customers (name, phone, email, city_id) VALUES
 ('Bisma Imran', '03217894560', 'bisma@gmail.com', (SELECT id FROM Cities WHERE name='Karachi')),
 ('Subhan Ali', '03221456987', 'subhan@gmail.com', (SELECT id FROM Cities WHERE name='Lahore')),
 ('Sir Taha', '03312564789', 'taha@gmail.com', (SELECT id FROM Cities WHERE name='Lahore'));
+
+-- Insert Inventory
+INSERT INTO Inventory (product_id, store_id, quantity, purchase_price) VALUES
+(1, (SELECT id FROM Stores WHERE code='KHI001'), 100, 150.00),
+(3, (SELECT id FROM Stores WHERE code='KHI001'), 50, 100.00);
+
+-- Process an Order
+SELECT ProcessOrder(
+    (SELECT id FROM Stores WHERE code='KHI001'),
+    (SELECT id FROM Customers WHERE name='Arham Sharif'),
+    '[{"product_id":1,"quantity":2,"price":150.00},{"product_id":3,"quantity":1,"price":100.00}]'::JSONB,
+    'Cash'
+);
 
 -- ==========================
 -- END SCRIPT
