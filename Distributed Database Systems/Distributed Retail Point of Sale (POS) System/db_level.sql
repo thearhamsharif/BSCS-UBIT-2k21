@@ -428,6 +428,37 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- ==========================
+-- 8. Examples of Usage
+-- ==========================
+-- Insert Cities
+INSERT INTO Cities (name) VALUES ('Karachi'), ('Lahore');
+
+-- Insert Categories
+INSERT INTO Categories (name, description) VALUES 
+('Beverages', 'Drinks and refreshments'),
+('Snacks', 'Light snacks and fast food');
+
+-- Insert Products
+INSERT INTO Products (sku, name, category_id, price) VALUES 
+('BEV001', 'Coca Cola', 1, 150.00),
+('BEV002', 'Pepsi', 1, 150.00),
+('SNK001', 'French Fries', 2, 100.00),
+('SNK002', 'Chicken Nuggets', 2, 200.00);
+
+-- Insert Stores
+INSERT INTO Stores (name, code, city_id) VALUES
+('Karachi Store', 'KHI001', (SELECT id FROM Cities WHERE name='Karachi')),
+('Lahore Store', 'LHE001', (SELECT id FROM Cities WHERE name='Lahore'));
+
+-- Insert Customers
+INSERT INTO Customers (name, phone, email, city_id) VALUES
+('Arham Sharif', '03216549870', 'sarham927@gmail.com', (SELECT id FROM Cities WHERE name='Karachi')),
+('Bisma Imran', '03217894560', 'bisma@gmail.com', (SELECT id FROM Cities WHERE name='Karachi')),
+('Subhan Ali', '03221456987', 'subhan@gmail.com', (SELECT id FROM Cities WHERE name='Lahore')),
+('Sir Taha', '03312564789', 'taha@gmail.com', (SELECT id FROM Cities WHERE name='Lahore'));
+
 -- ==========================
 -- END SCRIPT
 -- ==========================
