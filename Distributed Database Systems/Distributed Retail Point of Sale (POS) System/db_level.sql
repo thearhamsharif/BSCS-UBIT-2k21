@@ -132,8 +132,8 @@ CREATE TABLE Stores (
 CREATE TABLE Orders (
     id SERIAL PRIMARY KEY,
     global_order_id UUID NOT NULL,
-    store_id INT NOT NULL,
-    customer_id INT NOT NULL,
+    store_id INT NOT NULL REFERENCES Stores(id),
+    customer_id INT NOT NULL REFERENCES Customers(id),
     order_date TIMESTAMPTZ DEFAULT now(),
     total_amount NUMERIC(12,2) NOT NULL,
     status VARCHAR(50) DEFAULT 'Pending',
@@ -160,7 +160,7 @@ CREATE TABLE Payments (
 CREATE TABLE Inventory (
     id SERIAL PRIMARY KEY,
     product_id INT NOT NULL,
-    store_id INT NOT NULL,
+    store_id INT NOT NULL REFERENCES Stores(id),
     quantity INT NOT NULL DEFAULT 0,
     purchase_price NUMERIC(12,2),
     updated_at TIMESTAMPTZ DEFAULT now(),
@@ -191,8 +191,8 @@ CREATE TABLE Stores (
 CREATE TABLE Orders (
     id SERIAL PRIMARY KEY,
     global_order_id UUID NOT NULL,
-    store_id INT NOT NULL,
-    customer_id INT NOT NULL,
+    store_id INT NOT NULL REFERENCES Stores(id),
+    customer_id INT NOT NULL REFERENCES Customers(id),
     order_date TIMESTAMPTZ DEFAULT now(),
     total_amount NUMERIC(12,2) NOT NULL,
     status VARCHAR(50) DEFAULT 'Pending',
@@ -219,7 +219,7 @@ CREATE TABLE Payments (
 CREATE TABLE Inventory (
     id SERIAL PRIMARY KEY,
     product_id INT NOT NULL,
-    store_id INT NOT NULL,
+    store_id INT NOT NULL REFERENCES Stores(id),
     quantity INT NOT NULL DEFAULT 0,
     purchase_price NUMERIC(12,2),
     updated_at TIMESTAMPTZ DEFAULT now(),
@@ -265,7 +265,7 @@ CREATE OR REPLACE TRIGGER trg_customers
 AFTER INSERT OR UPDATE ON Customers
 FOR EACH ROW EXECUTE FUNCTION replicate_customers();
 
--- Stores replication (similar)
+-- Stores replication
 CREATE OR REPLACE FUNCTION replicate_stores() RETURNS TRIGGER AS $$
 DECLARE 
     db_name TEXT;
