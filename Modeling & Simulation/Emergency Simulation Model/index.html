@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Department Simulation</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  </head>
+
+  <body>
+    <header class="main-header">
+      <div class="logo">
+        <h1>Emergency Department Simulation</h1>
+      </div>
+    </header>
+
+    <main class="container">
+      <!-- Input Section -->
+      <section class="card input-section">
+        <h2 class="section-title">Input Parameters</h2>
+        <div class="input-grid">
+          <div class="input-group">
+            <label for="serverCount">Server</label>
+            <input type="number" id="serverCount" value="1" min="1">
+          </div>
+          <div class="input-group">
+            <label for="customerCount">No. of Customers</label>
+            <input type="number" id="customerCount" value="10" min="1">
+          </div>
+          <div class="input-group">
+            <label for="distributionType">Enter Distribution Type</label>
+            <select id="distributionType">
+              <option value="MM">Exponential (M/M)</option>
+              <option value="MG">General (M/G)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="lambda">&lambda; (Arrival Rate)</label>
+            <input type="number" id="lambda" value="2" step="0.1">
+          </div>
+          <div class="input-group">
+            <label for="mu">&mu; (Service Rate)</label>
+            <input type="number" id="mu" value="3" step="0.1">
+          </div>
+        </div>
+        <div class="button-area">
+          <button id="simulateBtn" class="btn btn-primary">SIMULATE</button>
+        </div>
+      </section>
+
+      <!-- Metrics Dashboard -->
+      <section id="metricsSection" class="metrics-grid" style="display: none;">
+        <div class="metric-card wait-time">
+          <h3>Average Waiting Time</h3>
+          <p id="avgWaitTime">0.00</p>
+        </div>
+        <div class="metric-card service-time">
+          <h3>Average Service Time</h3>
+          <p id="avgServiceTime">0.00</p>
+        </div>
+        <div class="metric-card turnaround-time">
+          <h3>Average Turnaround Time</h3>
+          <p id="avgTurnaroundTime">0.00</p>
+        </div>
+        <div class="metric-card response-time">
+          <h3>Average Response Time</h3>
+          <p id="avgResponseTime">0.00</p>
+        </div>
+      </section>
+
+      <!-- Steady State Results (Optional based on Image 4) -->
+      <section id="steadyStateSection" class="card" style="display: none;">
+        <h2 class="section-title">Queuing Simulation Results (Theoretical)</h2>
+        <div class="metrics-grid">
+          <div class="metric-card blue">
+            <h3>Queue Utilization</h3>
+            <p id="theoryUtilization">0.00</p>
+          </div>
+          <div class="metric-card orange">
+            <h3>Avg Queue Length (Queue)</h3>
+            <p id="theoryLq">0.00</p>
+          </div>
+          <div class="metric-card blue">
+            <h3>Avg Waiting Time (Queue)</h3>
+            <p id="theoryWq">0.00</p>
+          </div>
+          <div class="metric-card orange">
+            <h3>Avg Queue Length (System)</h3>
+            <p id="theoryLs">0.00</p>
+          </div>
+          <div class="metric-card blue">
+            <h3>Avg Waiting Time (System)</h3>
+            <p id="theoryWs">0.00</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Table Section -->
+      <section id="tableSection" class="card" style="display: none;">
+        <h2 class="section-title">Simulation Results</h2>
+        <div class="table-responsive">
+          <table id="simulationTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Arrival Time</th>
+                <th>Service Time</th>
+                <th>Priority</th>
+                <th>Wait Time</th>
+                <th>Response Time</th>
+                <th>Turn Around Time</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-download">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- Charts Section -->
+      <section id="chartsSection" class="card" style="display: none;">
+        <div class="chart-container">
+          <h2 class="section-title">Gantt Chart</h2>
+          <div id="ganttChartTitle">Server 1 (0.00%)</div>
+          <div class="gantt-wrapper">
+            <div id="ganttChart" class="gantt-chart"></div>
+            <div class="gantt-axis" id="ganttAxis"></div>
+          </div>
+        </div>
+
+        <div class="visuals-grid">
+          <div class="chart-card">
+            <h3>Waiting Time vs Service Time</h3>
+            <canvas id="waitingTimeChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>Service Time Comparison</h3>
+            <canvas id="serviceTimeChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>Response Time vs Service Time</h3>
+            <canvas id="responseTimeChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>Turn Around Time vs Service Time</h3>
+            <canvas id="turnAroundTimeChart"></canvas>
+          </div>
+          <div class="chart-card scatter-card">
+            <h3>Scatter Plot (Arrival vs End Time)</h3>
+            <canvas id="scatterPlotCanvas"></canvas>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+
+</html>
