@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Emergency Department Simulation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   </head>
 
   <body>
@@ -22,18 +22,49 @@
         <h2 class="section-title">Input Parameters</h2>
         <div class="input-grid">
           <div class="input-group">
-            <label for="serverCount">Server</label>
+            <label for="queuingModel">Queuing Model</label>
+            <select id="queuingModel">
+              <optgroup label="Markovian (Poisson) Models">
+                <option value="MM1">M/M/1 (Single Server)</option>
+                <option value="MMC" selected>M/M/c (Multi-Server)</option>
+                <option value="MM1K">M/M/1/K (Finite Capacity Single)</option>
+                <option value="MMCK">M/M/c/K (Finite Capacity Multi)</option>
+              </optgroup>
+              <optgroup label="General Service Models">
+                <option value="MG1">M/G/1 (General Service)</option>
+                <option value="MGC">M/G/c (Multi-Server General)</option>
+                <option value="MD1">M/D/1 (Deterministic Service)</option>
+              </optgroup>
+              <optgroup label="General Arrival & Service">
+                <option value="GG1">G/G/1 (General Model)</option>
+                <option value="GGC">G/G/c (General Multi-Server)</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="serverCount">Server (c)</label>
             <input type="number" id="serverCount" value="1" min="1">
           </div>
           <div class="input-group">
-            <label for="customerCount">No. of Customers</label>
+            <label for="customerCount">No. of Customers (N)</label>
             <input type="number" id="customerCount" value="10" min="1">
           </div>
           <div class="input-group">
-            <label for="distributionType">Enter Distribution Type</label>
-            <select id="distributionType">
-              <option value="MM">Exponential (M/M)</option>
-              <option value="MG">General (M/G)</option>
+            <label for="arrivalDist">Arrival Distribution</label>
+            <select id="arrivalDist">
+              <option value="EXPO">Exponential</option>
+              <option value="UNIF">Uniform</option>
+              <option value="DET">Deterministic</option>
+              <option value="NORM">Normal</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="serviceDist">Service Distribution</label>
+            <select id="serviceDist">
+              <option value="EXPO">Exponential</option>
+              <option value="UNIF">Uniform</option>
+              <option value="DET">Deterministic</option>
+              <option value="NORM">Normal</option>
             </select>
           </div>
           <div class="input-group">
@@ -43,6 +74,10 @@
           <div class="input-group">
             <label for="mu">&mu; (Service Rate)</label>
             <input type="number" id="mu" value="3" step="0.1">
+          </div>
+          <div id="capacityGroup" class="input-group">
+            <label for="capacity">System Capacity (K)</label>
+            <input type="number" id="capacity" value="999" min="1">
           </div>
         </div>
         <div class="button-area">
@@ -67,6 +102,10 @@
         <div class="metric-card response-time">
           <h3>Average Response Time</h3>
           <p id="avgResponseTime">0.00</p>
+        </div>
+        <div class="metric-card dropped-customers">
+          <h3>Dropped Customers</h3>
+          <p id="droppedCount">0</p>
         </div>
       </section>
 
