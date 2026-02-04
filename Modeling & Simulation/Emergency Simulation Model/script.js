@@ -26,6 +26,7 @@ function onModelChange() {
       serviceSelect.value = 'EXPO';
       serviceSelect.disabled = true;
       capacityInput.value = 999;
+      capacityGroup.style.display = 'none';
       break;
     case 'MMC':
       arrivalSelect.value = 'EXPO';
@@ -33,6 +34,7 @@ function onModelChange() {
       serviceSelect.value = 'EXPO';
       serviceSelect.disabled = true;
       capacityInput.value = 999;
+      capacityGroup.style.display = 'none';
       break;
     case 'MM1K':
       serverInput.value = 1;
@@ -56,13 +58,13 @@ function onModelChange() {
       arrivalSelect.value = 'EXPO';
       arrivalSelect.disabled = true;
       capacityInput.value = 999;
-      break;
-    case 'MS1': // Placeholder if needed
+      capacityGroup.style.display = 'none';
       break;
     case 'MGC':
       arrivalSelect.value = 'EXPO';
       arrivalSelect.disabled = true;
       capacityInput.value = 999;
+      capacityGroup.style.display = 'none';
       break;
     case 'MD1':
       serverInput.value = 1;
@@ -72,14 +74,17 @@ function onModelChange() {
       serviceSelect.value = 'DET';
       serviceSelect.disabled = true;
       capacityInput.value = 999;
+      capacityGroup.style.display = 'none';
       break;
     case 'GG1':
       serverInput.value = 1;
       serverInput.disabled = true;
       capacityInput.value = 999;
+      capacityGroup.style.display = 'none';
       break;
     case 'GGC':
       capacityInput.value = 999;
+      capacityGroup.style.display = 'none';
       break;
   }
 }
@@ -174,8 +179,8 @@ function generateSimulationData(n, lambda, mu, arrivalDist, serviceDist, servers
       continue;
     }
 
-    // Service time
-    const serviceTime = getRandomFromDist(serviceDist, mu);
+    // Service time (enforcing a minimum of 1 unit as requested)
+    const serviceTime = Math.max(1, getRandomFromDist(serviceDist, mu));
 
     // Assign to the first available server
     let chosenServer = 0;
@@ -414,8 +419,9 @@ function getCV2(dist) {
 
 
 function factorial(n) {
-  if (n === 0) return 1;
-  return n * factorial(n - 1);
+  let res = 1;
+  for (let i = 2; i <= n; i++) res *= i;
+  return res;
 }
 
 function renderGanttChart(occupancy) {
@@ -436,23 +442,33 @@ function renderGanttChart(occupancy) {
 
   const totalTime = maxEndTime || 1;
 
-  // Render for Server 1 (Default display)
-  const server1 = occupancy[0] || [];
-  let busyTime = 0;
+  occupancy.forEach((serverItems, idx) => {
+    const serverRow = document.createElement('div');
+    serverRow.className = 'gantt-chart';
+    serverRow.style.marginBottom = '10px';
 
-  server1.forEach(item => {
-    const width = (item.end - item.start) / totalTime * 100;
-    const div = document.createElement('div');
-    div.className = `gantt-item ${item.type}`;
-    div.style.width = `${width}%`;
-    div.innerText = item.label;
-    div.title = `${item.label}: ${item.start.toFixed(2)} - ${item.end.toFixed(2)}`;
-    gantt.appendChild(div);
+    let busyTime = 0;
+    serverItems.forEach(item => {
+      const width = (item.end - item.start) / totalTime * 100;
+      const div = document.createElement('div');
+      div.className = `gantt-item ${item.type}`;
+      div.style.width = `${width}%`;
+      div.innerText = item.label;
+      div.title = `Server ${idx + 1} | ${item.label}: ${item.start.toFixed(2)} - ${item.end.toFixed(2)}`;
+      serverRow.appendChild(div);
+      if (item.type === 'service') busyTime += (item.end - item.start);
+    });
 
-    if (item.type === 'service') busyTime += (item.end - item.start);
+    const rowLabel = document.createElement('div');
+    rowLabel.style.fontSize = '0.7rem';
+    rowLabel.style.marginBottom = '2px';
+    rowLabel.innerText = `Server ${idx + 1} (${(busyTime / totalTime * 100).toFixed(2)}% busy)`;
+
+    gantt.appendChild(rowLabel);
+    gantt.appendChild(serverRow);
   });
 
-  title.innerText = `Server 1 (${(busyTime / totalTime * 100).toFixed(2)}%) - Total Servers: ${occupancy.length}`;
+  title.innerText = `Multi-Server Usage Timeline (${occupancy.length} Servers)`;
 
   for (let i = 0; i <= totalTime; i += Math.max(1, Math.floor(totalTime / 10))) {
     const tick = document.createElement('div');
@@ -494,11 +510,11 @@ function drawSubBarChart(ctx, x, y, w, h, labels, values, serviceValues, title) 
   if (!values.length) return;
 
   const maxValue = Math.max(...values, ...serviceValues, 0.5) * 1.2;
-  const blueColor = "#1976D2";
-  const orangeColor = "#F57C00";
+  const primaryColor = "#0d9488"; // Teal
+  const accentColor = "#f59e0b"; // Amber
 
   // Axes
-  ctx.strokeStyle = "#ccc";
+  ctx.strokeStyle = "#cbd5e1";
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(x, y);
@@ -507,14 +523,14 @@ function drawSubBarChart(ctx, x, y, w, h, labels, values, serviceValues, title) 
   ctx.stroke();
 
   // Legend
-  ctx.font = "10px Roboto";
+  ctx.font = "12px Poppins";
   ctx.textAlign = "left";
-  ctx.fillStyle = blueColor;
-  ctx.fillRect(x + w - 100, y - 20, 10, 10);
-  ctx.fillText("Metric", x + w - 85, y - 12);
-  ctx.fillStyle = orangeColor;
-  ctx.fillRect(x + w - 45, y - 20, 10, 10);
-  ctx.fillText("Service", x + w - 30, y - 12);
+  ctx.fillStyle = primaryColor;
+  ctx.fillRect(x + w - 100, y - 24, 12, 12);
+  ctx.fillText("Metric", x + w - 84, y - 14);
+  ctx.fillStyle = accentColor;
+  ctx.fillRect(x + w - 45, y - 24, 12, 12);
+  ctx.fillText("Service", x + w - 29, y - 14);
 
   const groupWidth = w / values.length;
   const barWidth = Math.max(2, groupWidth * 0.35);
@@ -524,20 +540,20 @@ function drawSubBarChart(ctx, x, y, w, h, labels, values, serviceValues, title) 
     const bHeight2 = (serviceValues[i] / maxValue) * h;
     const bx = x + i * groupWidth + groupWidth * 0.15;
 
-    // Blue Bar
-    ctx.fillStyle = blueColor;
+    // Primary Bar
+    ctx.fillStyle = primaryColor;
     ctx.fillRect(bx, y + h - bHeight1, barWidth, bHeight1);
 
-    // Orange Bar
-    ctx.fillStyle = orangeColor;
+    // Accent Bar
+    ctx.fillStyle = accentColor;
     ctx.fillRect(bx + barWidth, y + h - bHeight2, barWidth, bHeight2);
 
     // Labels
     if (values.length <= 20) {
-      ctx.fillStyle = "#666";
-      ctx.font = "8px Roboto";
+      ctx.fillStyle = "#64748b";
+      ctx.font = "10px Poppins";
       ctx.textAlign = "center";
-      ctx.fillText(labels[i], bx + barWidth, y + h + 12);
+      ctx.fillText(labels[i], bx + barWidth, y + h + 16);
     }
   });
 
@@ -606,26 +622,26 @@ function drawScatterPlot(ctx, customers) {
   customers.forEach(c => {
     const xA = padding + (c.arrivalTime / maxTime) * w;
     const yA = padding + h - (c.id / maxID) * h;
-    ctx.fillStyle = "#1976D2";
+    ctx.fillStyle = "#0d9488"; // Primary
     ctx.beginPath();
     ctx.arc(xA, yA, 4, 0, Math.PI * 2);
     ctx.fill();
 
     const xE = padding + (c.endTime / maxTime) * w;
     const yE = padding + h - (c.id / maxID) * h;
-    ctx.fillStyle = "#F57C00";
+    ctx.fillStyle = "#f59e0b"; // Accent
     ctx.beginPath();
     ctx.arc(xE, yE, 4, 0, Math.PI * 2);
     ctx.fill();
   });
 
   // Legend
-  ctx.font = "14px Roboto";
+  ctx.font = "14px Poppins";
   ctx.textAlign = "right";
-  ctx.fillStyle = "#1976D2";
+  ctx.fillStyle = "#0d9488";
   ctx.fillRect(750, 60, 15, 15);
   ctx.fillText("Arrival Time", 740, 72);
-  ctx.fillStyle = "#F57C00";
+  ctx.fillStyle = "#f59e0b";
   ctx.fillRect(750, 85, 15, 15);
   ctx.fillText("End Time", 740, 97);
 }

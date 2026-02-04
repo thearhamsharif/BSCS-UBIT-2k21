@@ -280,13 +280,13 @@ th {
 }
 
 .gantt-item.service {
-  background: linear-gradient(180deg, var(--primary-color) 0%, #00695C 100%);
+  background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .gantt-item.idle {
-  background-color: #e8e8e8;
-  color: #888;
+  background-color: #f1f5f9;
+  color: #94a3b8;
   font-style: italic;
   background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0, 0, 0, 0.02) 5px, rgba(0, 0, 0, 0.02) 10px);
 }
@@ -302,16 +302,6 @@ th {
   top: 0;
   font-size: 0.7rem;
   color: var(--light-text);
-}
-
-.graphical-analysis-header {
-  text-align: center;
-  font-size: 2.5rem;
-  font-weight: 700;
-  text-decoration: underline;
-  margin-bottom: 3rem;
-  color: #333;
-  letter-spacing: 2px;
 }
 
 /* Visuals Grid */
