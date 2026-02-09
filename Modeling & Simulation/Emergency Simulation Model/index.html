@@ -80,6 +80,22 @@
             <label for="capacity">System Capacity (K)</label>
             <input type="number" id="capacity" value="999" min="1">
           </div>
+          <div class="input-group">
+            <label for="priorityModel">Priority System</label>
+            <select id="priorityModel">
+              <option value="FIFO">FIFO (No Priority)</option>
+              <option value="NP">Non-Preemptive Priority</option>
+              <option value="PR">Preemptive Priority</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="serverCost">Server Cost ($/hr)</label>
+            <input type="number" id="serverCost" value="50" min="0">
+          </div>
+          <div class="input-group">
+            <label for="waitCost">Waiting Cost ($/hr)</label>
+            <input type="number" id="waitCost" value="20" min="0">
+          </div>
         </div>
         <div class="button-area">
           <button id="simulateBtn" class="btn btn-primary">SIMULATE</button>
@@ -108,6 +124,10 @@
         <div class="metric-card dropped-customers">
           <h3>Dropped Customers</h3>
           <p id="droppedCount">0</p>
+        </div>
+        <div class="metric-card cost-metric">
+          <h3>Total Simulation Cost</h3>
+          <p id="totalCostMetric">$0.00</p>
         </div>
       </section>
 
@@ -199,6 +219,14 @@
           <div class="chart-card scatter-card">
             <h3>Scatter Plot (Arrival vs End Time)</h3>
             <canvas id="scatterPlotCanvas"></canvas>
+          </div>
+          <div class="chart-card scatter-card">
+            <h3>Queue Length over Time</h3>
+            <canvas id="queueTimelineCanvas"></canvas>
+          </div>
+          <div class="chart-card scatter-card">
+            <h3>Cost Breakdown (Server vs Waiting)</h3>
+            <canvas id="costBreakdownCanvas"></canvas>
           </div>
         </div>
       </section>

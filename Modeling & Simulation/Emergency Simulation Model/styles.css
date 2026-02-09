@@ -141,7 +141,7 @@ body {
 /* Input Styles */
 .input-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.5rem;
   margin-bottom: 1.5rem;
 }
@@ -288,6 +288,10 @@ body {
 
 .metric-card.dropped-customers {
   background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+}
+
+.metric-card.cost-metric {
+  background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
 }
 
 /* Table Styles */

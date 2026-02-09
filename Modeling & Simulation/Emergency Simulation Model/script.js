@@ -92,38 +92,70 @@ function onModelChange() {
 
 function runSimulation() {
   try {
-    const serverCount = parseInt(document.getElementById('serverCount').value);
-    const customerCount = parseInt(document.getElementById('customerCount').value);
+    // 1. Define fields to validate
+    const fields = [
+      { id: 'lambda', label: 'Arrival Rate (\u03BB)', type: 'float', min: 0.0001 },
+      { id: 'mu', label: 'Service Rate (\u03BC)', type: 'float', min: 0.0001 },
+      { id: 'serverCount', label: 'Server Count (c)', type: 'int', min: 1 },
+      { id: 'customerCount', label: 'Customer Count (N)', type: 'int', min: 1 },
+      { id: 'serverCost', label: 'Server Cost', type: 'float', min: 0 },
+      { id: 'waitCost', label: 'Waiting Cost', type: 'float', min: 0 }
+    ];
+
+    // Only validate capacity if it's visible
+    const model = document.getElementById('queuingModel').value;
+    const capacityGroup = document.getElementById('capacityGroup');
+    if (capacityGroup && capacityGroup.style.display !== 'none') {
+      fields.push({ id: 'capacity', label: 'System Capacity (K)', type: 'int', min: 1 });
+    }
+
+    const values = {};
+    for (const field of fields) {
+      const el = document.getElementById(field.id);
+      const raw = el.value.trim();
+
+      if (raw === "") {
+        showError(`Please enter a value for ${field.label}.`);
+        el.focus();
+        return;
+      }
+
+      const val = field.type === 'int' ? parseInt(raw) : parseFloat(raw);
+
+      if (isNaN(val)) {
+        showError(`The value for ${field.label} must be a number.`);
+        el.focus();
+        return;
+      }
+
+      if (val < field.min) {
+        showError(`${field.label} must be at least ${field.min}.`);
+        el.focus();
+        return;
+      }
+
+      values[field.id] = val;
+    }
+
+    // Extracted values
+    const lambda = values.lambda;
+    const mu = values.mu;
+    const serverCount = values.serverCount;
+    const customerCount = values.customerCount;
+    const capacity = values.capacity || 999;
+    const serverCostPH = values.serverCost;
+    const waitCostPH = values.waitCost;
+
     const arrivalDist = document.getElementById('arrivalDist').value;
     const serviceDist = document.getElementById('serviceDist').value;
-    const lambda = parseFloat(document.getElementById('lambda').value);
-    const mu = parseFloat(document.getElementById('mu').value);
-    const capacity = parseInt(document.getElementById('capacity').value);
+    const priorityModel = document.getElementById('priorityModel').value;
 
-    // Robust Input Validation
-    if (isNaN(lambda) || isNaN(mu) || lambda <= 0 || mu <= 0) {
-      showError("Please enter valid positive values for Lambda (\u03BB) and Mu (\u03BC).");
-      return;
-    }
-    if (isNaN(serverCount) || serverCount < 1) {
-      showError("Server count (c) must be at least 1.");
-      return;
-    }
-    if (isNaN(customerCount) || customerCount < 1) {
-      showError("Number of customers (N) must be at least 1.");
-      return;
-    }
-    if (isNaN(capacity) || capacity < 1) {
-      showError("System capacity (K) must be at least 1.");
-      return;
-    }
-    if (capacity < serverCount && document.getElementById('queuingModel').value.includes('K')) {
+    if (capacity < serverCount && model.includes('K')) {
       showError("System capacity (K) cannot be less than the number of servers (c).");
       return;
     }
 
     // Stability Check (\u03C1 < 1) for Infinite Capacity Models
-    const model = document.getElementById('queuingModel').value;
     const isFinite = model.includes('K');
     const rho = lambda / (serverCount * mu);
 
@@ -134,14 +166,14 @@ Please increase service rate (\u03BC) or increase number of servers (c).`);
       return;
     }
 
-    // Show result sections with animation
+    // Show result sections with simple display and optional fade
     const sections = ['metricsSection', 'tableSection', 'chartsSection', 'steadyStateSection'];
     sections.forEach(id => {
       const el = document.getElementById(id);
-      el.style.display = id === 'metricsSection' ? 'grid' : 'block';
-      el.style.opacity = '0';
-      el.style.transition = 'opacity 0.6s ease-out';
-      setTimeout(() => el.style.opacity = '1', 10);
+      if (el) {
+        el.style.display = id === 'metricsSection' ? 'grid' : 'block';
+        el.style.opacity = '1'; // Ensure visible
+      }
     });
 
     const simulateBtn = document.getElementById('simulateBtn');
@@ -149,8 +181,8 @@ Please increase service rate (\u03BC) or increase number of servers (c).`);
     simulateBtn.innerText = "SIMULATING...";
 
     setTimeout(() => {
-      const simulationData = generateSimulationData(customerCount, lambda, mu, arrivalDist, serviceDist, serverCount, capacity);
-      updateUI(simulationData, lambda, mu, arrivalDist, serviceDist, serverCount, capacity);
+      const simulationData = generateSimulationData(customerCount, lambda, mu, arrivalDist, serviceDist, serverCount, capacity, priorityModel);
+      updateUI(simulationData, lambda, mu, arrivalDist, serviceDist, serverCount, capacity, serverCostPH, waitCostPH, customerCount);
 
       simulateBtn.disabled = false;
       simulateBtn.innerText = "SIMULATE";
@@ -186,106 +218,178 @@ function getRandomFromDist(type, rate) {
   }
 }
 
-function generateSimulationData(n, lambda, mu, arrivalDist, serviceDist, servers, capacity) {
+function generateSimulationData(n, lambda, mu, arrivalDist, serviceDist, servers, capacity, priorityModel) {
   let data = [];
   let dropped = 0;
-  let currentTime = 0;
+  let currentSimTime = 0;
+  let queueTimeline = [];
 
-  // Server availability tracking
-  let serverFreeTime = new Array(servers).fill(0);
+  // State for servers: null or { cust: object, lastStart: time }
+  let serversStatus = new Array(servers).fill(null);
   let serverOccupancy = new Array(servers).fill(0).map(() => []);
 
+  // Pre-generate all arrivals to handle sorting/interruption logic
+  let arrivals = [];
+  let tempTime = 0;
   for (let i = 1; i <= n; i++) {
-    // Inter-arrival time
     const interArrival = getRandomFromDist(arrivalDist, lambda);
-    currentTime += interArrival;
-
-    // Check system capacity (K)
-    // Functional check: How many are currently in system?
-    let inSystem = 0;
-    serverFreeTime.forEach(t => {
-      if (t > currentTime) inSystem++;
-    });
-    // Simplification: Approximate queue length by looking at scheduled ends
-    // In a real event-based simulation, we'd track the queue. 
-    // Here we can count how many servers are busy + how many are waiting to start.
-    // However, our data structure is linear. Let's filter 'data' for currently in system.
-    let currentlyInSystem = data.filter(c => c.endTime > currentTime).length;
-
-    if (currentlyInSystem >= capacity) {
-      dropped++;
-      continue;
-    }
-
-    // Service time (enforcing a minimum of 1 unit as requested)
-    const serviceTime = Math.max(1, getRandomFromDist(serviceDist, mu));
-
-    // Assign to the first available server
-    let chosenServer = 0;
-    let earliestFree = serverFreeTime[0];
-
-    for (let s = 1; s < servers; s++) {
-      if (serverFreeTime[s] < earliestFree) {
-        earliestFree = serverFreeTime[s];
-        chosenServer = s;
-      }
-    }
-
-    const startTime = Math.max(currentTime, serverFreeTime[chosenServer]);
-
-    // Record idle time if any
-    if (startTime > serverFreeTime[chosenServer]) {
-      serverOccupancy[chosenServer].push({
-        type: 'idle',
-        start: serverFreeTime[chosenServer],
-        end: startTime,
-        label: 'Idle'
-      });
-    }
-
-    const endTime = startTime + serviceTime;
-    serverFreeTime[chosenServer] = endTime;
-
-    serverOccupancy[chosenServer].push({
-      type: 'service',
-      start: startTime,
-      end: endTime,
-      label: `Cust ${i}`
-    });
-
-    const waitTime = startTime - currentTime;
-    const turnaroundTime = endTime - currentTime;
-
-    data.push({
+    tempTime += interArrival;
+    arrivals.push({
       id: i,
-      arrivalTime: currentTime,
-      serviceTime: serviceTime,
+      arrivalTime: tempTime,
       priority: Math.floor(Math.random() * 3) + 1,
-      waitTime: waitTime,
-      responseTime: waitTime,
-      turnaroundTime: turnaroundTime,
-      startTime: startTime,
-      endTime: endTime,
-      server: chosenServer + 1
+      serviceTime: Math.max(1, getRandomFromDist(serviceDist, mu)),
+      remainingServiceTime: 0, // Initialized on arrival
+      responseTime: -1,
+      startTime: -1
     });
   }
 
-  return { customers: data, serverOccupancy: serverOccupancy, dropped: dropped };
+  let eventQueue = [...arrivals];
+  let waitingBuffer = [];
+  let completedCount = 0;
+
+  // Main DES Loop
+  while (completedCount < n && (eventQueue.length > 0 || waitingBuffer.length > 0 || serversStatus.some(s => s !== null))) {
+    // Jump time to next arrival if system is idle
+    if (waitingBuffer.length === 0 && eventQueue.length > 0 && serversStatus.every(s => s === null)) {
+      currentSimTime = Math.max(currentSimTime, eventQueue[0].arrivalTime);
+    }
+
+    // Handle new arrivals at current time
+    while (eventQueue.length > 0 && eventQueue[0].arrivalTime <= currentSimTime + 0.0001) {
+      let incoming = eventQueue.shift();
+      incoming.remainingServiceTime = incoming.serviceTime;
+
+      let inSystem = waitingBuffer.length + serversStatus.filter(s => s !== null).length;
+      if (inSystem < capacity) {
+        waitingBuffer.push(incoming);
+        // Sorting logic based on model
+        if (priorityModel !== 'FIFO') {
+          waitingBuffer.sort((a, b) => a.priority - b.priority || a.arrivalTime - b.arrivalTime);
+        }
+
+        // PREEMPTION LOGIC
+        if (priorityModel === 'PR') {
+          let preemptableIdx = -1;
+          let lowestPriorityOnServer = incoming.priority;
+
+          for (let s = 0; s < servers; s++) {
+            if (serversStatus[s] && serversStatus[s].cust.priority > lowestPriorityOnServer) {
+              lowestPriorityOnServer = serversStatus[s].cust.priority;
+              preemptableIdx = s;
+            }
+          }
+
+          if (preemptableIdx !== -1) {
+            let preempted = serversStatus[preemptableIdx];
+            let served = currentSimTime - preempted.lastStart;
+            preempted.cust.remainingServiceTime -= served;
+
+            serverOccupancy[preemptableIdx].push({
+              type: 'service',
+              start: preempted.lastStart,
+              end: currentSimTime,
+              label: `Cust ${preempted.cust.id} (P)`
+            });
+
+            waitingBuffer.push(preempted.cust);
+            waitingBuffer.sort((a, b) => a.priority - b.priority || a.arrivalTime - b.arrivalTime);
+            serversStatus[preemptableIdx] = null; // Server now free for new high-priority arrival
+          }
+        }
+      } else {
+        dropped++;
+        completedCount++;
+      }
+    }
+
+    // Resource Assignment
+    for (let s = 0; s < servers; s++) {
+      if (serversStatus[s] === null && waitingBuffer.length > 0) {
+        let cust = waitingBuffer.shift();
+        if (cust.responseTime === -1) {
+          cust.responseTime = currentSimTime - cust.arrivalTime;
+          cust.startTime = currentSimTime;
+        }
+
+        serversStatus[s] = {
+          cust: cust,
+          lastStart: currentSimTime
+        };
+      }
+    }
+
+    queueTimeline.push({ time: currentSimTime, length: waitingBuffer.length });
+
+    // Determine next simulation hop
+    let nextArrival = eventQueue.length > 0 ? eventQueue[0].arrivalTime : Infinity;
+    let nextCompletion = Infinity;
+    serversStatus.forEach(s => {
+      if (s) nextCompletion = Math.min(nextCompletion, currentSimTime + s.cust.remainingServiceTime);
+    });
+
+    let nextTime = Math.min(nextArrival, nextCompletion);
+    if (nextTime === Infinity) break;
+
+    // Advance state to nextTime
+    let timeDiff = nextTime - currentSimTime;
+    serversStatus.forEach(s => {
+      if (s) s.cust.remainingServiceTime -= timeDiff;
+    });
+
+    if (nextTime === nextCompletion) {
+      currentSimTime = nextTime;
+      for (let s = 0; s < servers; s++) {
+        if (serversStatus[s] && serversStatus[s].cust.remainingServiceTime <= 0.0001) {
+          let finished = serversStatus[s].cust;
+          finished.endTime = currentSimTime;
+          // Wait time is total time in system - service time
+          finished.waitTime = finished.endTime - finished.arrivalTime - finished.serviceTime;
+          finished.turnaroundTime = finished.endTime - finished.arrivalTime;
+
+          serverOccupancy[s].push({
+            type: 'service',
+            start: serversStatus[s].lastStart,
+            end: currentSimTime,
+            label: `Cust ${finished.id}`
+          });
+
+          data.push(finished);
+          completedCount++;
+          serversStatus[s] = null;
+        }
+      }
+    } else {
+      currentSimTime = nextTime;
+    }
+  }
+
+  data.sort((a, b) => a.id - b.id);
+  return { customers: data, serverOccupancy: serverOccupancy, dropped: dropped, queueTimeline: queueTimeline };
 }
 
-function updateUI(data, lambda, mu, arrivalDist, serviceDist, servers, capacity) {
+function updateUI(data, lambda, mu, arrivalDist, serviceDist, servers, capacity, serverCostPH, waitCostPH, originalCustomerCount) {
   const customers = data.customers;
 
   // 1. Update Metrics Cards
-  const avgWait = customers.length ? customers.reduce((sum, c) => sum + c.waitTime, 0) / customers.length : 0;
+  const totalWait = customers.reduce((sum, c) => sum + c.waitTime, 0);
+  const avgWait = customers.length ? totalWait / customers.length : 0;
   const avgService = customers.length ? customers.reduce((sum, c) => sum + c.serviceTime, 0) / customers.length : 0;
   const avgTurnaround = customers.length ? customers.reduce((sum, c) => sum + c.turnaroundTime, 0) / customers.length : 0;
   const avgResponse = customers.length ? customers.reduce((sum, c) => sum + c.responseTime, 0) / customers.length : 0;
+
+  // Cost calculation
+  const totalSimTime = customers.length ? Math.max(...customers.map(c => c.endTime)) : 0;
+  const totalServerCost = (servers * serverCostPH * totalSimTime); // Simplistic cost over sim duration
+  const totalWaitCost = (totalWait * waitCostPH);
+  const totalCost = totalServerCost + totalWaitCost;
 
   document.getElementById('avgWaitTime').innerText = avgWait.toFixed(2);
   document.getElementById('avgServiceTime').innerText = avgService.toFixed(2);
   document.getElementById('avgTurnaroundTime').innerText = avgTurnaround.toFixed(2);
   document.getElementById('avgResponseTime').innerText = avgResponse.toFixed(2);
+  document.getElementById('totalCostMetric').innerText = "$" + totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   // 2. Theoretical Results
   const model = document.getElementById('queuingModel').value;
@@ -307,7 +411,7 @@ function updateUI(data, lambda, mu, arrivalDist, serviceDist, servers, capacity)
 
   // Update Dropped Card with Theoretical comparison
   const simulatedDropped = data.dropped;
-  const theoreticalDropped = (isNaN(theory.pk) || !isFinite(theory.pk)) ? "0.0" : (theory.pk * parseInt(document.getElementById('customerCount').value)).toFixed(1);
+  const theoreticalDropped = (isNaN(theory.pk) || !isFinite(theory.pk)) ? "0.0" : (theory.pk * originalCustomerCount).toFixed(1);
   document.getElementById('droppedCount').innerHTML = `${simulatedDropped} <span style="font-size: 0.8rem; opacity: 0.7;">(Theory: ${theoreticalDropped})</span>`;
 
   // 3. Table Update
@@ -332,10 +436,21 @@ function updateUI(data, lambda, mu, arrivalDist, serviceDist, servers, capacity)
   renderGanttChart(data.serverOccupancy);
 
   // 5. Plots
-  renderPlots(customers);
+  renderPlots(customers, data.queueTimeline, totalServerCost, totalWaitCost);
 }
 
 function calculateTheoretical(model, lambda, mu, c, K, arrivalDist, serviceDist, theory) {
+  // Force numeric inputs
+  lambda = parseFloat(lambda);
+  mu = parseFloat(mu);
+  c = parseInt(c);
+  K = parseInt(K);
+
+  if (isNaN(lambda) || isNaN(mu) || isNaN(c) || mu <= 0 || c <= 0) {
+    theory.unstable = true;
+    return;
+  }
+
   const rho = lambda / (c * mu);
   theory.utilization = rho;
   theory.pk = 0; // Default: no blocking
@@ -526,7 +641,7 @@ function renderGanttChart(occupancy) {
   }
 }
 
-function renderPlots(customers) {
+function renderPlots(customers, queueTimeline, serverCost, waitCost) {
   const ids = customers.map(c => c.id);
   const serviceTimes = customers.map(c => c.serviceTime);
 
@@ -550,6 +665,106 @@ function renderPlots(customers) {
   scatterCanvas.height = 400;
   const scatterCtx = scatterCanvas.getContext('2d');
   drawScatterPlot(scatterCtx, customers);
+
+  // New Charts - Wrapped in Safe Try-Catch
+  try {
+    drawQueueTimeline(document.getElementById('queueTimelineCanvas'), queueTimeline);
+    drawCostBreakdown(document.getElementById('costBreakdownCanvas'), serverCost, waitCost);
+  } catch (err) {
+    showError("Could not render some analytics charts due to extreme data values.");
+  }
+}
+
+function drawQueueTimeline(canvas, timeline) {
+  canvas.width = 800;
+  canvas.height = 300;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 800, 300);
+
+  const padding = 50;
+  const w = 800 - 2 * padding;
+  const h = 300 - 2 * padding;
+
+  if (!timeline.length) return;
+
+  const maxTime = Math.max(...timeline.map(t => t.time), 1);
+  const maxLength = Math.max(...timeline.map(t => t.length), 1) * 1.2;
+
+  // Axes
+  ctx.strokeStyle = "#cbd5e1";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(padding, padding);
+  ctx.lineTo(padding, padding + h);
+  ctx.lineTo(padding + w, padding + h);
+  ctx.stroke();
+
+  // Line
+  ctx.strokeStyle = "#0d9488";
+  ctx.lineWidth = 3;
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+
+  timeline.forEach((pt, i) => {
+    const px = padding + (pt.time / maxTime) * w;
+    const py = padding + h - (pt.length / maxLength) * h;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  });
+  ctx.stroke();
+
+  // Area fill
+  ctx.lineTo(padding + w, padding + h);
+  ctx.lineTo(padding, padding + h);
+  ctx.fillStyle = "rgba(13, 148, 136, 0.1)";
+  ctx.fill();
+
+  ctx.fillStyle = "#64748b";
+  ctx.font = "12px Poppins";
+  ctx.textAlign = "center";
+  ctx.fillText("Time", padding + w / 2, padding + h + 30);
+}
+
+function drawCostBreakdown(canvas, serverCost, waitCost) {
+  canvas.width = 800;
+  canvas.height = 300;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 800, 300);
+
+  const total = serverCost + waitCost;
+  if (total === 0) return;
+
+  const padding = 50;
+  const barH = 60;
+  const w = 800 - 2 * padding;
+
+  const sWidth = (serverCost / total) * w;
+  const wWidth = (waitCost / total) * w;
+
+  // Server Cost Bar
+  const grad1 = ctx.createLinearGradient(padding, 0, padding + sWidth, 0);
+  grad1.addColorStop(0, "#3b82f6");
+  grad1.addColorStop(1, "#1d4ed8");
+  ctx.fillStyle = grad1;
+  ctx.fillRect(padding, 100, sWidth, barH);
+
+  // Waiting Cost Bar
+  const grad2 = ctx.createLinearGradient(padding + sWidth, 0, padding + w, 0);
+  grad2.addColorStop(0, "#ef4444");
+  grad2.addColorStop(1, "#b91c1c");
+  ctx.fillStyle = grad2;
+  ctx.fillRect(padding + sWidth, 100, wWidth, barH);
+
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "bold 14px Poppins";
+  ctx.textAlign = "left";
+  ctx.fillText(`Server Operation: $${serverCost.toFixed(2)}`, padding, 90);
+  ctx.textAlign = "right";
+  ctx.fillText(`Patient Waiting: $${waitCost.toFixed(2)}`, padding + w, 90);
+
+  ctx.textAlign = "center";
+  ctx.font = "16px Poppins";
+  ctx.fillText(`Efficiency Ratio: ${(serverCost / waitCost).toFixed(2)}`, padding + w / 2, 200);
 }
 
 function drawSubBarChart(ctx, x, y, w, h, labels, values, serviceValues, title) {
@@ -595,10 +810,10 @@ function drawSubBarChart(ctx, x, y, w, h, labels, values, serviceValues, title) 
   ctx.font = "500 12px Poppins";
   ctx.textAlign = "left";
   ctx.fillStyle = primaryColor;
-  ctx.roundRect ? ctx.beginPath() || ctx.roundRect(x + w - 100, y - 24, 12, 12, 3) || ctx.fill() : ctx.fillRect(x + w - 100, y - 24, 12, 12);
+  ctx.fillRect(x + w - 100, y - 24, 12, 12);
   ctx.fillText("Metric", x + w - 84, y - 14);
   ctx.fillStyle = accentColor;
-  ctx.roundRect ? ctx.beginPath() || ctx.roundRect(x + w - 45, y - 24, 12, 12, 3) || ctx.fill() : ctx.fillRect(x + w - 45, y - 24, 12, 12);
+  ctx.fillRect(x + w - 45, y - 24, 12, 12);
   ctx.fillText("Service", x + w - 29, y - 14);
 
   const groupWidth = w / values.length;
@@ -611,23 +826,11 @@ function drawSubBarChart(ctx, x, y, w, h, labels, values, serviceValues, title) 
 
     // Primary Bar
     ctx.fillStyle = grad1;
-    if (ctx.roundRect) {
-      ctx.beginPath();
-      ctx.roundRect(bx, y + h - bHeight1, barWidth, bHeight1, [4, 4, 0, 0]);
-      ctx.fill();
-    } else {
-      ctx.fillRect(bx, y + h - bHeight1, barWidth, bHeight1);
-    }
+    ctx.fillRect(bx, y + h - bHeight1, barWidth, bHeight1);
 
     // Accent Bar
     ctx.fillStyle = grad2;
-    if (ctx.roundRect) {
-      ctx.beginPath();
-      ctx.roundRect(bx + barWidth + 2, y + h - bHeight2, barWidth, bHeight2, [4, 4, 0, 0]);
-      ctx.fill();
-    } else {
-      ctx.fillRect(bx + barWidth + 2, y + h - bHeight2, barWidth, bHeight2);
-    }
+    ctx.fillRect(bx + barWidth + 2, y + h - bHeight2, barWidth, bHeight2);
 
     // Labels
     if (values.length <= 25) {
@@ -788,6 +991,9 @@ function resetSimulation() {
   document.getElementById('lambda').value = 2;
   document.getElementById('mu').value = 3;
   document.getElementById('capacity').value = 999;
+  document.getElementById('priorityModel').value = 'FIFO';
+  document.getElementById('serverCost').value = 50;
+  document.getElementById('waitCost').value = 20;
 
   onModelChange(); // Refresh label states
 
@@ -799,6 +1005,7 @@ function resetSimulation() {
 
   // 3. Clear transient results
   document.querySelector('#simulationTable tbody').innerHTML = '';
+  document.getElementById('totalCostMetric').innerText = '$0.00';
 
   showNotification("Simulation reset to defaults.", "success");
 }
