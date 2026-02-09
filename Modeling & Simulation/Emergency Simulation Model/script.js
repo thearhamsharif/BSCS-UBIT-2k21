@@ -90,39 +90,60 @@ function onModelChange() {
 }
 
 function runSimulation() {
-  const serverCount = parseInt(document.getElementById('serverCount').value);
-  const customerCount = parseInt(document.getElementById('customerCount').value);
-  const arrivalDist = document.getElementById('arrivalDist').value;
-  const serviceDist = document.getElementById('serviceDist').value;
-  const lambda = parseFloat(document.getElementById('lambda').value);
-  const mu = parseFloat(document.getElementById('mu').value);
-  const capacity = parseInt(document.getElementById('capacity').value);
+  try {
+    const serverCount = parseInt(document.getElementById('serverCount').value);
+    const customerCount = parseInt(document.getElementById('customerCount').value);
+    const arrivalDist = document.getElementById('arrivalDist').value;
+    const serviceDist = document.getElementById('serviceDist').value;
+    const lambda = parseFloat(document.getElementById('lambda').value);
+    const mu = parseFloat(document.getElementById('mu').value);
+    const capacity = parseInt(document.getElementById('capacity').value);
 
-  if (isNaN(lambda) || isNaN(mu) || lambda <= 0 || mu <= 0) {
-    showError("Please enter valid positive values for Lambda and Mu.");
-    return;
-  }
+    // Robust Input Validation
+    if (isNaN(lambda) || isNaN(mu) || lambda <= 0 || mu <= 0) {
+      showError("Please enter valid positive values for Lambda (\u03BB) and Mu (\u03BC).");
+      return;
+    }
+    if (isNaN(serverCount) || serverCount < 1) {
+      showError("Server count (c) must be at least 1.");
+      return;
+    }
+    if (isNaN(customerCount) || customerCount < 1) {
+      showError("Number of customers (N) must be at least 1.");
+      return;
+    }
+    if (isNaN(capacity) || capacity < 1) {
+      showError("System capacity (K) must be at least 1.");
+      return;
+    }
+    if (capacity < serverCount && document.getElementById('queuingModel').value.includes('K')) {
+      showError("System capacity (K) cannot be less than the number of servers (c).");
+      return;
+    }
 
-  // Stability Check (\u03C1 < 1) for Infinite Capacity Models
-  const model = document.getElementById('queuingModel').value;
-  const isFinite = model.includes('K');
-  const rho = lambda / (serverCount * mu);
+    // Stability Check (\u03C1 < 1) for Infinite Capacity Models
+    const model = document.getElementById('queuingModel').value;
+    const isFinite = model.includes('K');
+    const rho = lambda / (serverCount * mu);
 
-  if (!isFinite && rho >= 1) {
-    showError(`System is Unstable (\u03C1 = ${rho.toFixed(2)} \u2265 1).
+    if (!isFinite && rho >= 1) {
+      showError(`System is Unstable (\u03C1 = ${rho.toFixed(2)} \u2265 1).
 Theoretical values cannot be calculated as the queue will grow to infinity.
 Please increase service rate (\u03BC) or increase number of servers (c).`);
-    return;
+      return;
+    }
+
+    // Show result sections
+    document.getElementById('metricsSection').style.display = 'grid';
+    document.getElementById('tableSection').style.display = 'block';
+    document.getElementById('chartsSection').style.display = 'block';
+    document.getElementById('steadyStateSection').style.display = 'block';
+
+    const simulationData = generateSimulationData(customerCount, lambda, mu, arrivalDist, serviceDist, serverCount, capacity);
+    updateUI(simulationData, lambda, mu, arrivalDist, serviceDist, serverCount, capacity);
+  } catch (err) {
+    showError("An unexpected error occurred during simulation. Please check your inputs.");
   }
-
-  // Show result sections
-  document.getElementById('metricsSection').style.display = 'grid';
-  document.getElementById('tableSection').style.display = 'block';
-  document.getElementById('chartsSection').style.display = 'block';
-  document.getElementById('steadyStateSection').style.display = 'block';
-
-  const simulationData = generateSimulationData(customerCount, lambda, mu, arrivalDist, serviceDist, serverCount, capacity);
-  updateUI(simulationData, lambda, mu, arrivalDist, serviceDist, serverCount, capacity);
 }
 
 function getRandomFromDist(type, rate) {
@@ -253,17 +274,23 @@ function updateUI(data, lambda, mu, arrivalDist, serviceDist, servers, capacity)
   const model = document.getElementById('queuingModel').value;
   let theory = { utilization: 0, lq: 0, wq: 0, ls: 0, ws: 0, unstable: false, pk: 0 };
 
-  calculateTheoretical(model, lambda, mu, servers, capacity, arrivalDist, serviceDist, theory);
+  try {
+    calculateTheoretical(model, lambda, mu, servers, capacity, arrivalDist, serviceDist, theory);
+  } catch (err) {
+    theory.unstable = true;
+  }
 
-  document.getElementById('theoryUtilization').innerText = (theory.utilization * 100).toFixed(2) + "%" + (theory.unstable ? " (Unstable)" : "");
-  document.getElementById('theoryLq').innerText = theory.lq.toFixed(2);
-  document.getElementById('theoryWq').innerText = theory.wq.toFixed(2);
-  document.getElementById('theoryLs').innerText = theory.ls.toFixed(2);
-  document.getElementById('theoryWs').innerText = theory.ws.toFixed(2);
+  const formatTheory = (val) => (isNaN(val) || !isFinite(val)) ? "0.00" : val.toFixed(2);
+
+  document.getElementById('theoryUtilization').innerText = (theory.utilization * 100).toFixed(2) + "%" + (theory.unstable ? " (Unstable/Error)" : "");
+  document.getElementById('theoryLq').innerText = formatTheory(theory.lq);
+  document.getElementById('theoryWq').innerText = formatTheory(theory.wq);
+  document.getElementById('theoryLs').innerText = formatTheory(theory.ls);
+  document.getElementById('theoryWs').innerText = formatTheory(theory.ws);
 
   // Update Dropped Card with Theoretical comparison
   const simulatedDropped = data.dropped;
-  const theoreticalDropped = (theory.pk * parseInt(document.getElementById('customerCount').value)).toFixed(1);
+  const theoreticalDropped = (isNaN(theory.pk) || !isFinite(theory.pk)) ? "0.0" : (theory.pk * parseInt(document.getElementById('customerCount').value)).toFixed(1);
   document.getElementById('droppedCount').innerHTML = `${simulatedDropped} <span style="font-size: 0.8rem; opacity: 0.7;">(Theory: ${theoreticalDropped})</span>`;
 
   // 3. Table Update
@@ -419,8 +446,11 @@ function getCV2(dist) {
 
 
 function factorial(n) {
+  if (n < 0) return 0;
+  if (n === 0) return 1;
   let res = 1;
-  for (let i = 2; i <= n; i++) res *= i;
+  // Safety cap to prevent Infinity for very large factorials if inputs are somehow large
+  for (let i = 2; i <= Math.min(n, 100); i++) res *= i;
   return res;
 }
 
