@@ -99,7 +99,7 @@ function runSimulation() {
   const capacity = parseInt(document.getElementById('capacity').value);
 
   if (isNaN(lambda) || isNaN(mu) || lambda <= 0 || mu <= 0) {
-    alert("Please enter valid positive values for Lambda and Mu.");
+    showError("Please enter valid positive values for Lambda and Mu.");
     return;
   }
 
@@ -109,7 +109,7 @@ function runSimulation() {
   const rho = lambda / (serverCount * mu);
 
   if (!isFinite && rho >= 1) {
-    alert(`System is Unstable (\u03C1 = ${rho.toFixed(2)} \u2265 1).
+    showError(`System is Unstable (\u03C1 = ${rho.toFixed(2)} \u2265 1).
 Theoretical values cannot be calculated as the queue will grow to infinity.
 Please increase service rate (\u03BC) or increase number of servers (c).`);
     return;
@@ -256,10 +256,10 @@ function updateUI(data, lambda, mu, arrivalDist, serviceDist, servers, capacity)
   calculateTheoretical(model, lambda, mu, servers, capacity, arrivalDist, serviceDist, theory);
 
   document.getElementById('theoryUtilization').innerText = (theory.utilization * 100).toFixed(2) + "%" + (theory.unstable ? " (Unstable)" : "");
-  document.getElementById('theoryLq').innerText = theory.lq.toFixed(4);
-  document.getElementById('theoryWq').innerText = theory.wq.toFixed(4);
-  document.getElementById('theoryLs').innerText = theory.ls.toFixed(4);
-  document.getElementById('theoryWs').innerText = theory.ws.toFixed(4);
+  document.getElementById('theoryLq').innerText = theory.lq.toFixed(2);
+  document.getElementById('theoryWq').innerText = theory.wq.toFixed(2);
+  document.getElementById('theoryLs').innerText = theory.ls.toFixed(2);
+  document.getElementById('theoryWs').innerText = theory.ws.toFixed(2);
 
   // Update Dropped Card with Theoretical comparison
   const simulatedDropped = data.dropped;
@@ -666,3 +666,27 @@ document.querySelector('.btn-download').addEventListener('click', () => {
 });
 
 
+function showError(message) {
+  const container = document.getElementById('error-container');
+
+  const toast = document.createElement('div');
+  toast.className = 'error-toast';
+
+  toast.innerHTML = `
+        <div class="icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+        </div>
+        <div class="message">${message.replace(/\n/g, '<br>')}</div>
+    `;
+
+  container.appendChild(toast);
+
+  // Remove after animation completes (5 seconds total)
+  setTimeout(() => {
+    toast.remove();
+  }, 5000);
+}
