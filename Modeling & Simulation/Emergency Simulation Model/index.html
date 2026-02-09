@@ -4,9 +4,56 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emergency Department Simulation | Premium Queuing Model Tool</title>
-    <meta name="description" content="A professional-grade Emergency Department Simulation tool for modeling queuing systems (M/M/c, M/G/1, etc.) with real-time visual analytics.">
+    <title>Emergency Department Simulation | Professional Analytical Hub</title>
+    <meta name="description" content="State-of-the-art Emergency Department Simulation tool. Model M/M/c, M/G/1, and Priority queuing systems with cost optimization and real-time visual analytics.">
+    <meta name="keywords" content="Emergency Department Simulation, Queuing Theory, M/M/1, M/M/c, Priority Queuing, Healthcare Modeling, Discrete Event Simulation, Cost Optimization, Hospital Management Tool">
+    <meta name="author" content="Arham Sharif">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://arhamsharif.github.io/emergency-sim/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://arhamsharif.github.io/emergency-sim/">
+    <meta property="og:title" content="Emergency Department Simulation | Professional Analytical Hub">
+    <meta property="og:description" content="Model complex queuing systems with cost optimization and real-time visual analytics. Built for healthcare professionals and researchers.">
+    <meta property="og:image" content="assets/social_preview.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://arhamsharif.github.io/emergency-sim/">
+    <meta property="twitter:title" content="Emergency Department Simulation | Professional Analytical Hub">
+    <meta property="twitter:description" content="Model complex queuing systems with cost optimization and real-time visual analytics. Built for healthcare professionals and researchers.">
+    <meta property="twitter:image" content="assets/social_preview.png">
+
     <link rel="stylesheet" href="styles.css">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Emergency Department Simulation",
+      "description": "Professional-grade tool for modeling queuing systems with real-time visual analytics and cost optimization.",
+      "applicationCategory": "EducationalApplication, BusinessApplication",
+      "operatingSystem": "Web",
+      "author": {
+        "@type": "Person",
+        "name": "Arham Sharif"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "M/M/1, M/M/c, M/G/1 modeling",
+        "Priority Queuing (Preemptive & Non-Preemptive)",
+        "Cost Optimization Analysis",
+        "Real-time Gantt Charts",
+        "Queue Timeline Analytics"
+      ]
+    }
+    </script>
   </head>
 
   <body>
@@ -24,7 +71,7 @@
         <div class="input-grid">
           <div class="input-group">
             <label for="queuingModel">Queuing Model</label>
-            <select id="queuingModel">
+            <select id="queuingModel" aria-label="Select queuing model type">
               <optgroup label="Markovian (Poisson) Models">
                 <option value="MM1">M/M/1 (Single Server)</option>
                 <option value="MMC" selected>M/M/c (Multi-Server)</option>
@@ -44,15 +91,15 @@
           </div>
           <div class="input-group">
             <label for="serverCount">Server (c)</label>
-            <input type="number" id="serverCount" value="1" min="1">
+            <input type="number" id="serverCount" value="1" min="1" aria-label="Number of servers">
           </div>
           <div class="input-group">
             <label for="customerCount">No. of Customers (N)</label>
-            <input type="number" id="customerCount" value="10" min="1">
+            <input type="number" id="customerCount" value="10" min="1" aria-label="Number of customers to simulate">
           </div>
           <div class="input-group">
             <label for="arrivalDist">Arrival Distribution</label>
-            <select id="arrivalDist">
+            <select id="arrivalDist" aria-label="Select arrival distribution type">
               <option value="EXPO">Exponential</option>
               <option value="UNIF">Uniform</option>
               <option value="DET">Deterministic</option>
@@ -61,7 +108,7 @@
           </div>
           <div class="input-group">
             <label for="serviceDist">Service Distribution</label>
-            <select id="serviceDist">
+            <select id="serviceDist" aria-label="Select service distribution type">
               <option value="EXPO">Exponential</option>
               <option value="UNIF">Uniform</option>
               <option value="DET">Deterministic</option>
@@ -70,19 +117,19 @@
           </div>
           <div class="input-group">
             <label for="lambda">&lambda; (Arrival Rate)</label>
-            <input type="number" id="lambda" value="2" step="0.1">
+            <input type="number" id="lambda" value="2" step="0.1" aria-label="Arrival rate (lambda)">
           </div>
           <div class="input-group">
             <label for="mu">&mu; (Service Rate)</label>
-            <input type="number" id="mu" value="3" step="0.1">
+            <input type="number" id="mu" value="3" step="0.1" aria-label="Service rate (mu)">
           </div>
           <div id="capacityGroup" class="input-group">
             <label for="capacity">System Capacity (K)</label>
-            <input type="number" id="capacity" value="999" min="1">
+            <input type="number" id="capacity" value="999" min="1" aria-label="Maximum system capacity">
           </div>
           <div class="input-group">
             <label for="priorityModel">Priority System</label>
-            <select id="priorityModel">
+            <select id="priorityModel" aria-label="Select priority queuing model">
               <option value="FIFO">FIFO (No Priority)</option>
               <option value="NP">Non-Preemptive Priority</option>
               <option value="PR">Preemptive Priority</option>
@@ -90,68 +137,68 @@
           </div>
           <div class="input-group">
             <label for="serverCost">Server Cost ($/hr)</label>
-            <input type="number" id="serverCost" value="50" min="0">
+            <input type="number" id="serverCost" value="50" min="0" aria-label="Operational cost per server per hour">
           </div>
           <div class="input-group">
             <label for="waitCost">Waiting Cost ($/hr)</label>
-            <input type="number" id="waitCost" value="20" min="0">
+            <input type="number" id="waitCost" value="20" min="0" aria-label="Patient waiting cost per hour">
           </div>
         </div>
         <div class="button-area">
-          <button id="simulateBtn" class="btn btn-primary">SIMULATE</button>
-          <button id="resetBtn" class="btn btn-secondary">RESET</button>
+          <button id="simulateBtn" class="btn btn-primary" aria-label="Run Simulation">SIMULATE</button>
+          <button id="resetBtn" class="btn btn-secondary" aria-label="Reset All Inputs">RESET</button>
         </div>
       </section>
 
       <!-- Metrics Dashboard -->
-      <section id="metricsSection" class="metrics-grid" style="display: none;">
-        <div class="metric-card wait-time">
+      <section id="metricsSection" class="metrics-grid" style="display: none;" aria-label="Simulation Metrics Dashboard">
+        <div class="metric-card wait-time" aria-live="polite">
           <h3>Average Waiting Time</h3>
           <p id="avgWaitTime">0.00</p>
         </div>
-        <div class="metric-card service-time">
+        <div class="metric-card service-time" aria-live="polite">
           <h3>Average Service Time</h3>
           <p id="avgServiceTime">0.00</p>
         </div>
-        <div class="metric-card turnaround-time">
+        <div class="metric-card turnaround-time" aria-live="polite">
           <h3>Average Turnaround Time</h3>
           <p id="avgTurnaroundTime">0.00</p>
         </div>
-        <div class="metric-card response-time">
+        <div class="metric-card response-time" aria-live="polite">
           <h3>Average Response Time</h3>
           <p id="avgResponseTime">0.00</p>
         </div>
-        <div class="metric-card dropped-customers">
+        <div class="metric-card dropped-customers" aria-live="polite">
           <h3>Dropped Customers</h3>
           <p id="droppedCount">0</p>
         </div>
-        <div class="metric-card cost-metric">
+        <div class="metric-card cost-metric" aria-live="polite">
           <h3>Total Simulation Cost</h3>
           <p id="totalCostMetric">$0.00</p>
         </div>
       </section>
 
       <!-- Steady State Results (Optional based on Image 4) -->
-      <section id="steadyStateSection" class="card" style="display: none;">
+      <section id="steadyStateSection" class="card" style="display: none;" aria-label="Theoretical Steady-State Analytics">
         <h2 class="section-title">Queuing Simulation Results (Theoretical)</h2>
         <div class="metrics-grid">
-          <div class="metric-card blue">
+          <div class="metric-card blue" aria-live="polite">
             <h3>Queue Utilization</h3>
             <p id="theoryUtilization">0.00</p>
           </div>
-          <div class="metric-card orange">
+          <div class="metric-card orange" aria-live="polite">
             <h3>Avg Queue Length (Queue)</h3>
             <p id="theoryLq">0.00</p>
           </div>
-          <div class="metric-card blue">
+          <div class="metric-card blue" aria-live="polite">
             <h3>Avg Waiting Time (Queue)</h3>
             <p id="theoryWq">0.00</p>
           </div>
-          <div class="metric-card orange">
+          <div class="metric-card orange" aria-live="polite">
             <h3>Avg Queue Length (System)</h3>
             <p id="theoryLs">0.00</p>
           </div>
-          <div class="metric-card blue">
+          <div class="metric-card blue" aria-live="polite">
             <h3>Avg Waiting Time (System)</h3>
             <p id="theoryWs">0.00</p>
           </div>
@@ -159,7 +206,7 @@
       </section>
 
       <!-- Table Section -->
-      <section id="tableSection" class="card" style="display: none;">
+      <section id="tableSection" class="card" style="display: none;" aria-label="Simulation Customer Datasheet">
         <h2 class="section-title">Simulation Results</h2>
         <div class="table-responsive">
           <table id="simulationTable">
@@ -180,7 +227,7 @@
           </table>
         </div>
         <div class="action-bar">
-          <button class="btn btn-download">
+          <button class="btn btn-download" aria-label="Download Results as CSV">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
             </svg>
@@ -189,50 +236,50 @@
       </section>
 
       <!-- Charts Section -->
-      <section id="chartsSection" class="card" style="display: none;">
+      <section id="chartsSection" class="card" style="display: none;" aria-label="Simulation Visual Analytics">
         <div class="chart-container">
           <h2 class="section-title">Gantt Chart</h2>
-          <div id="ganttChartTitle">Server 1 (0.00%)</div>
+          <div id="ganttChartTitle" aria-live="polite">Server 1 (0.00%)</div>
           <div class="gantt-wrapper">
-            <div id="ganttChart"></div>
-            <div class="gantt-axis" id="ganttAxis"></div>
+            <div id="ganttChart" role="img" aria-label="Visual Gantt chart of server activity"></div>
+            <div class="gantt-axis" id="ganttAxis" aria-hidden="true"></div>
           </div>
         </div>
 
         <div class="visuals-grid">
           <div class="chart-card">
             <h3>Waiting Time vs Service Time</h3>
-            <canvas id="waitingTimeChart"></canvas>
+            <canvas id="waitingTimeChart" role="img" aria-label="Bar chart showing waiting vs service time per customer"></canvas>
           </div>
           <div class="chart-card">
             <h3>Service Time Comparison</h3>
-            <canvas id="serviceTimeChart"></canvas>
+            <canvas id="serviceTimeChart" role="img" aria-label="Bar chart comparing service times"></canvas>
           </div>
           <div class="chart-card">
             <h3>Response Time vs Service Time</h3>
-            <canvas id="responseTimeChart"></canvas>
+            <canvas id="responseTimeChart" role="img" aria-label="Bar chart showing response vs service time per customer"></canvas>
           </div>
           <div class="chart-card">
             <h3>Turn Around Time vs Service Time</h3>
-            <canvas id="turnAroundTimeChart"></canvas>
+            <canvas id="turnAroundTimeChart" role="img" aria-label="Bar chart showing turnaround vs service time per customer"></canvas>
           </div>
           <div class="chart-card scatter-card">
             <h3>Scatter Plot (Arrival vs End Time)</h3>
-            <canvas id="scatterPlotCanvas"></canvas>
+            <canvas id="scatterPlotCanvas" role="img" aria-label="Scatter plot showing arrival times vs completion times"></canvas>
           </div>
           <div class="chart-card scatter-card">
             <h3>Queue Length over Time</h3>
-            <canvas id="queueTimelineCanvas"></canvas>
+            <canvas id="queueTimelineCanvas" role="img" aria-label="Line chart showing number of patients in queue over time"></canvas>
           </div>
           <div class="chart-card scatter-card">
             <h3>Cost Breakdown (Server vs Waiting)</h3>
-            <canvas id="costBreakdownCanvas"></canvas>
+            <canvas id="costBreakdownCanvas" role="img" aria-label="Bar chart showing breakdown of server vs waiting costs"></canvas>
           </div>
         </div>
       </section>
     </main>
 
-    <div id="error-container" class="error-container"></div>
+    <div id="error-container" class="error-container" role="alert" aria-live="assertive"></div>
     <script src="script.js"></script>
   </body>
 
