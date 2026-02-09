@@ -134,11 +134,15 @@ Please increase service rate (\u03BC) or increase number of servers (c).`);
       return;
     }
 
-    // Show result sections
-    document.getElementById('metricsSection').style.display = 'grid';
-    document.getElementById('tableSection').style.display = 'block';
-    document.getElementById('chartsSection').style.display = 'block';
-    document.getElementById('steadyStateSection').style.display = 'block';
+    // Show result sections with animation
+    const sections = ['metricsSection', 'tableSection', 'chartsSection', 'steadyStateSection'];
+    sections.forEach(id => {
+      const el = document.getElementById(id);
+      el.style.display = id === 'metricsSection' ? 'grid' : 'block';
+      el.style.opacity = '0';
+      el.style.transition = 'opacity 0.6s ease-out';
+      setTimeout(() => el.style.opacity = '1', 10);
+    });
 
     const simulateBtn = document.getElementById('simulateBtn');
     simulateBtn.disabled = true;
@@ -556,9 +560,31 @@ function drawSubBarChart(ctx, x, y, w, h, labels, values, serviceValues, title) 
   const primaryColor = "#0d9488"; // Teal
   const accentColor = "#f59e0b"; // Amber
 
+  // Gradients
+  const grad1 = ctx.createLinearGradient(0, y, 0, y + h);
+  grad1.addColorStop(0, "#0d9488");
+  grad1.addColorStop(1, "#0f766e");
+
+  const grad2 = ctx.createLinearGradient(0, y, 0, y + h);
+  grad2.addColorStop(0, "#f59e0b");
+  grad2.addColorStop(1, "#d97706");
+
+  // Background Grid
+  ctx.strokeStyle = "rgba(226, 232, 240, 0.5)";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 5]);
+  for (let j = 0; j <= 4; j++) {
+    const py = y + h - (j / 4) * h;
+    ctx.beginPath();
+    ctx.moveTo(x, py);
+    ctx.lineTo(x + w, py);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
   // Axes
   ctx.strokeStyle = "#cbd5e1";
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(x, y);
   ctx.lineTo(x, y + h);
@@ -566,17 +592,17 @@ function drawSubBarChart(ctx, x, y, w, h, labels, values, serviceValues, title) 
   ctx.stroke();
 
   // Legend
-  ctx.font = "12px Poppins";
+  ctx.font = "500 12px Poppins";
   ctx.textAlign = "left";
   ctx.fillStyle = primaryColor;
-  ctx.fillRect(x + w - 100, y - 24, 12, 12);
+  ctx.roundRect ? ctx.beginPath() || ctx.roundRect(x + w - 100, y - 24, 12, 12, 3) || ctx.fill() : ctx.fillRect(x + w - 100, y - 24, 12, 12);
   ctx.fillText("Metric", x + w - 84, y - 14);
   ctx.fillStyle = accentColor;
-  ctx.fillRect(x + w - 45, y - 24, 12, 12);
+  ctx.roundRect ? ctx.beginPath() || ctx.roundRect(x + w - 45, y - 24, 12, 12, 3) || ctx.fill() : ctx.fillRect(x + w - 45, y - 24, 12, 12);
   ctx.fillText("Service", x + w - 29, y - 14);
 
   const groupWidth = w / values.length;
-  const barWidth = Math.max(2, groupWidth * 0.35);
+  const barWidth = Math.max(4, groupWidth * 0.35);
 
   values.forEach((v, i) => {
     const bHeight1 = (v / maxValue) * h;
@@ -584,29 +610,42 @@ function drawSubBarChart(ctx, x, y, w, h, labels, values, serviceValues, title) 
     const bx = x + i * groupWidth + groupWidth * 0.15;
 
     // Primary Bar
-    ctx.fillStyle = primaryColor;
-    ctx.fillRect(bx, y + h - bHeight1, barWidth, bHeight1);
+    ctx.fillStyle = grad1;
+    if (ctx.roundRect) {
+      ctx.beginPath();
+      ctx.roundRect(bx, y + h - bHeight1, barWidth, bHeight1, [4, 4, 0, 0]);
+      ctx.fill();
+    } else {
+      ctx.fillRect(bx, y + h - bHeight1, barWidth, bHeight1);
+    }
 
     // Accent Bar
-    ctx.fillStyle = accentColor;
-    ctx.fillRect(bx + barWidth, y + h - bHeight2, barWidth, bHeight2);
+    ctx.fillStyle = grad2;
+    if (ctx.roundRect) {
+      ctx.beginPath();
+      ctx.roundRect(bx + barWidth + 2, y + h - bHeight2, barWidth, bHeight2, [4, 4, 0, 0]);
+      ctx.fill();
+    } else {
+      ctx.fillRect(bx + barWidth + 2, y + h - bHeight2, barWidth, bHeight2);
+    }
 
     // Labels
-    if (values.length <= 20) {
+    if (values.length <= 25) {
       ctx.fillStyle = "#64748b";
-      ctx.font = "10px Poppins";
+      ctx.font = "400 10px Poppins";
       ctx.textAlign = "center";
-      ctx.fillText(labels[i], bx + barWidth, y + h + 16);
+      ctx.fillText(labels[i], bx + barWidth + 1, y + h + 16);
     }
   });
 
-  // Y-axis
+  // Y-axis numbering
   ctx.textAlign = "right";
-  ctx.fillStyle = "#999";
+  ctx.fillStyle = "#64748b";
+  ctx.font = "400 11px Poppins";
   for (let j = 0; j <= 4; j++) {
     const val = (maxValue * j / 4).toFixed(1);
     const py = y + h - (j / 4) * h;
-    ctx.fillText(val, x - 5, py + 3);
+    ctx.fillText(val, x - 8, py + 4);
   }
 }
 
