@@ -150,6 +150,25 @@ body {
   box-shadow: 0 10px 15px -3px rgba(13, 148, 136, 0.3);
 }
 
+.btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid var(--border-color);
+  margin-left: 10px;
+}
+
+.btn-secondary:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 /* Dashboard Metrics */
 .metrics-grid {
   display: grid;
@@ -376,6 +395,15 @@ canvas {
   border-left: 5px solid var(--dropped-color);
   pointer-events: auto;
   animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1), fadeOut 0.5s ease 4.5s forwards;
+}
+
+.success-toast {
+  border-left-color: #10b981;
+}
+
+.success-toast .icon {
+  background-color: #d1fae5;
+  color: #10b981;
 }
 
 .error-toast .icon {

@@ -1,4 +1,5 @@
 document.getElementById('simulateBtn').addEventListener('click', runSimulation);
+document.getElementById('resetBtn').addEventListener('click', resetSimulation);
 document.getElementById('queuingModel').addEventListener('change', onModelChange);
 onModelChange(); // Initialize labels
 
@@ -139,9 +140,21 @@ Please increase service rate (\u03BC) or increase number of servers (c).`);
     document.getElementById('chartsSection').style.display = 'block';
     document.getElementById('steadyStateSection').style.display = 'block';
 
-    const simulationData = generateSimulationData(customerCount, lambda, mu, arrivalDist, serviceDist, serverCount, capacity);
-    updateUI(simulationData, lambda, mu, arrivalDist, serviceDist, serverCount, capacity);
+    const simulateBtn = document.getElementById('simulateBtn');
+    simulateBtn.disabled = true;
+    simulateBtn.innerText = "SIMULATING...";
+
+    setTimeout(() => {
+      const simulationData = generateSimulationData(customerCount, lambda, mu, arrivalDist, serviceDist, serverCount, capacity);
+      updateUI(simulationData, lambda, mu, arrivalDist, serviceDist, serverCount, capacity);
+
+      simulateBtn.disabled = false;
+      simulateBtn.innerText = "SIMULATE";
+      showSuccess("Simulation completed successfully!");
+    }, 500); // Small delay for UX feel
   } catch (err) {
+    document.getElementById('simulateBtn').disabled = false;
+    document.getElementById('simulateBtn').innerText = "SIMULATE";
     showError("An unexpected error occurred during simulation. Please check your inputs.");
   }
 }
@@ -696,27 +709,57 @@ document.querySelector('.btn-download').addEventListener('click', () => {
 });
 
 
+function showSuccess(message) {
+  showNotification(message, 'success');
+}
+
 function showError(message) {
+  showNotification(message, 'error');
+}
+
+function showNotification(message, type) {
   const container = document.getElementById('error-container');
 
   const toast = document.createElement('div');
-  toast.className = 'error-toast';
+  toast.className = `error-toast ${type === 'success' ? 'success-toast' : ''}`;
+
+  const iconSvg = type === 'success'
+    ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`
+    : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
 
   toast.innerHTML = `
-        <div class="icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-        </div>
+        <div class="icon">${iconSvg}</div>
         <div class="message">${message.replace(/\n/g, '<br>')}</div>
     `;
 
   container.appendChild(toast);
 
-  // Remove after animation completes (5 seconds total)
   setTimeout(() => {
     toast.remove();
   }, 5000);
+}
+
+function resetSimulation() {
+  // 1. Reset Inputs to defaults
+  document.getElementById('queuingModel').value = 'MMC';
+  document.getElementById('serverCount').value = 1;
+  document.getElementById('customerCount').value = 10;
+  document.getElementById('arrivalDist').value = 'EXPO';
+  document.getElementById('serviceDist').value = 'EXPO';
+  document.getElementById('lambda').value = 2;
+  document.getElementById('mu').value = 3;
+  document.getElementById('capacity').value = 999;
+
+  onModelChange(); // Refresh label states
+
+  // 2. Hide results
+  document.getElementById('metricsSection').style.display = 'none';
+  document.getElementById('tableSection').style.display = 'none';
+  document.getElementById('chartsSection').style.display = 'none';
+  document.getElementById('steadyStateSection').style.display = 'none';
+
+  // 3. Clear transient results
+  document.querySelector('#simulationTable tbody').innerHTML = '';
+
+  showNotification("Simulation reset to defaults.", "success");
 }
