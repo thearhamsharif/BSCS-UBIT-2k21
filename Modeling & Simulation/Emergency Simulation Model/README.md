@@ -2,7 +2,7 @@
 
 ![Social Preview](assets/social_preview.png)
 
-A state-of-the-art **Discrete Event Simulation (DES)** tool designed for modeling, analyzing, and optimizing department workflows using queuing theory. This tool provides healthcare professionals, researchers, and managers with real-time visual analytics and cost-effective decision-making support.
+A state-of-the-art **Discrete Event Simulation (DES)** tool designed for modeling, analyzing, and optimizing complex workflows using queuing theory. This tool provides researchers, analysts, and managers with real-time visual analytics and cost-effective decision-making support.
 
 ## 🚀 Core Features
 
