@@ -309,7 +309,7 @@ function generateSimulationData(n, lambda, mu, arrivalDist, serviceDist, servers
       if (serversStatus[s] === null && waitingBuffer.length > 0) {
         let cust = waitingBuffer.shift();
         if (cust.responseTime === -1) {
-          cust.responseTime = currentSimTime - cust.arrivalTime;
+          cust.responseTime = Math.max(0, currentSimTime - cust.arrivalTime);
           cust.startTime = currentSimTime;
         }
 
@@ -345,8 +345,8 @@ function generateSimulationData(n, lambda, mu, arrivalDist, serviceDist, servers
           let finished = serversStatus[s].cust;
           finished.endTime = currentSimTime;
           // Wait time is total time in system - service time
-          finished.waitTime = finished.endTime - finished.arrivalTime - finished.serviceTime;
-          finished.turnaroundTime = finished.endTime - finished.arrivalTime;
+          finished.waitTime = Math.max(0, finished.endTime - finished.arrivalTime - finished.serviceTime);
+          finished.turnaroundTime = Math.max(0, finished.endTime - finished.arrivalTime);
 
           serverOccupancy[s].push({
             type: 'service',
